@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TextInput, SafeAreaView, Platform } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { MainTabParamList, RootStackParamList, TabScreenProps, TabScreenComponent } from '../navigation/types';
+import { MainTabParamList, RootStackParamList, TabScreenProps } from '../navigation/types';
 import { theme } from '../theme/colors';
-import { ThemedText } from '../component/ThemedText';
 import ButtonCustom from '../component/ButtonCustom';
 import Card from '../component/Card';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
+import LinearGradient from 'react-native-linear-gradient';
+import Header from '../component/Header';
+import InputCustom from '../component/InputCustom';
+import SelectCustom from '../component/SelectCustom';
 type Props = CompositeScreenProps<
   TabScreenProps<'Applications'>,
   NativeStackScreenProps<RootStackParamList>
@@ -17,192 +19,188 @@ type Props = CompositeScreenProps<
 
 export type LoanApprovalScreenProps = Props;
 
-interface LoanApplication {
-  id: string;
-  farmerName: string;
-  creditScore: number;
-  requestedAmount: number;
-  status: 'pending' | 'approved' | 'rejected';
-}
+const LoanApprovalScreen: React.FC<Props> = ({ navigation, route }) => {
+  const [amount, setAmount] = useState<string>('');
+  const [purpose, setPurpose] = useState<string>('');
+  const [farmDetails, setFarmDetails] = useState<string>('');
+  const [collateral, setCollateral] = useState<string>('');
+  const [repaymentPlan, setRepaymentPlan] = useState<string>('');
+  const purposes = ['Working capital', 'Equipment', 'Seeds & inputs', 'Irrigation'];
+  const purposeOptions = purposes.map(p => ({ label: p, value: p }));
 
-const LoanApprovalScreen: React.FC<Props> = ({ navigation }) => {
-  const [applications] = useState<LoanApplication[]>([
-    {
-      id: 'APP001',
-      farmerName: 'Nguyen Van A',
-      creditScore: 72,
-      requestedAmount: 500,
-      status: 'pending',
-    },
-    {
-      id: 'APP002',
-      farmerName: 'Tran Thi B',
-      creditScore: 85,
-      requestedAmount: 1000,
-      status: 'pending',
-    },
-  ]);
 
-  const handleViewProfile = (id: string) => {
-    (navigation as any).navigate('CreditProfile', { profileId: id });
+  const creditScore = 742;
+  const bank = {
+    name: 'AgriBank Plus',
+    rate: '4.5%-7.2%',
+    max: '$500K',
   };
 
-  const renderApplication = (app: LoanApplication) => (
-    <Card key={app.id} style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View>
-          <ThemedText style={styles.farmerName}>{app.farmerName}</ThemedText>
-          <ThemedText style={styles.appId}>Application ID: {app.id}</ThemedText>
-        </View>
-        <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
-          <ThemedText style={styles.badgeText}>Pending</ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.cardBody}>
-        <View style={styles.infoRow}>
-          <ThemedText>Credit Score:</ThemedText>
-          <ThemedText style={styles.scoreText}>{app.creditScore}/100</ThemedText>
-        </View>
-        <View style={styles.infoRow}>
-          <ThemedText>Requested Amount:</ThemedText>
-          <ThemedText>${app.requestedAmount}</ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.cardActions}>
-        <ButtonCustom
-          title="View Profile"
-          onPress={() => handleViewProfile(app.id)}
-          variant="outline"
-          style={styles.actionButton}
-        />
-        <View style={styles.approvalButtons}>
-          <ButtonCustom
-            title="Reject"
-            onPress={() => {}}
-            variant="outline"
-            icon="close"
-            style={{ ...styles.iconButton, ...styles.rejectButton }}
-          />
-          <ButtonCustom
-            title="Approve"
-            onPress={() => {}}
-            variant="primary"
-            icon="check"
-            style={{ ...styles.iconButton, ...styles.approveButton }}
-          />
-        </View>
-      </View>
-    </Card>
-  );
+  const onSubmit = () => {
+    // basic validation
+    if (!amount || !purpose) {
+      // use simple alert; in your app you may use Toast
+      console.warn('Please enter amount and select purpose');
+      return;
+    }
+    (navigation as any).navigate('Applications');
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Loan Applications</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          {applications.length} pending applications
-        </ThemedText>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <LinearGradient colors={[theme.colors.secondary + '30', theme.colors.white]} style={{ flex: 1 }}>
+        <Header title="Loan Approval" onBack={() => (navigation as any).goBack?.()} />
+        <ScrollView contentContainerStyle={styles.container}>
+          {/* Selected bank summary */}
+          <View style={[styles.headerCard, styles.elevation]}>
+            <View style={styles.headerRow}>
+              <View style={styles.logoBox}>
+                <Icon name="bank" size={20} color={theme.colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bankName}>{bank.name}</Text>
+                <View style={styles.rowStart}>
+                  <Text style={styles.muted}>Rate: {bank.rate}</Text>
+                  <Text style={[styles.muted, { marginLeft: 14 }]}>Max: {bank.max}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          {/* Score hint */}
+          <View style={[styles.section, styles.infoSection, styles.elevation]}>
+            <View style={styles.rowTop}>
+              <View style={styles.badgeIcon}>
+                <Icon name="shield-check" size={18} color={theme.colors.success} />
+              </View>
+              <View style={styles.infoTextWrap}>
+                <Text style={styles.scoreTitle}>Your Credit Score: {creditScore}</Text>
+                <Text style={styles.muted}>You qualify for this lender's best rates based on your AgriCred score.</Text>
+              </View>
+            </View>
+          </View>
+          {/* Loan details form */}
+          <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="file-document-edit-outline" size={22} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>Loan Details</Text>
+            </View>
 
-      <View style={styles.content}>
-        {applications.map(renderApplication)}
-      </View>
-    </ScrollView>
+            <View style={styles.inlineRow}>
+              <InputCustom
+                label="Loan Amount"
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0"
+                keyboardType="numeric"
+                required
+                leftIcon="currency-usd"
+                containerStyle={{ flex: 1, marginBottom: 0 }}
+              />
+              <View style={{ width: 12 }} />
+              <SelectCustom
+                label="Purpose"
+                value={purpose}
+                onChange={setPurpose}
+                options={purposeOptions}
+                placeholder="Select purpose"
+                containerStyle={{ flex: 1 }}
+              />
+            </View>
+
+            <InputCustom
+              label="Farm Details"
+              value={farmDetails}
+              onChangeText={setFarmDetails}
+              placeholder="Describe your farming operation, crops, and current status..."
+              multiline
+              inputStyle={{ minHeight: 100, textAlignVertical: 'top' }}
+            />
+
+            <InputCustom
+              label="Collateral Information"
+              value={collateral}
+              onChangeText={setCollateral}
+              placeholder="Describe assets you can offer as collateral..."
+              multiline
+              inputStyle={{ minHeight: 100, textAlignVertical: 'top' }}
+            />
+
+            <InputCustom
+              label="Repayment Plan"
+              value={repaymentPlan}
+              onChangeText={setRepaymentPlan}
+              placeholder="Describe your expected repayment timeline and cash flow..."
+              multiline
+              inputStyle={{ minHeight: 100, textAlignVertical: 'top' }}
+            />
+          </View>
+          <ButtonCustom
+            title="Submit Application"
+            icon="send"
+            onPress={onSubmit}
+            style={styles.submitBtn}
+          />
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    padding: 20,
-    backgroundColor: theme.colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: theme.colors.textLight,
-    marginTop: 4,
-  },
-  content: {
-    padding: 15,
-  },
-  card: {
-    backgroundColor: theme.colors.white,
+  container: { padding: theme.spacing.lg },
+  rowStart: { flexDirection: 'row', alignItems: 'center' },
+  rowTop: { flexDirection: 'row', alignItems: 'flex-start' },
+
+  muted: { color: theme.colors.textLight, fontSize: theme.typography.fontSize.sm },
+  headerCard: { backgroundColor: theme.colors.white, borderRadius: 16, padding: theme.spacing.md, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border },
+  elevation: { ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 }, android: { elevation: 3 } }) },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  logoBox: {
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    justifyContent: 'center',
+    backgroundColor: theme.colors.border,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
-  farmerName: {
-    fontSize: 18,
-    fontWeight: '600',
+  bankName: { fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text },
+  section: { backgroundColor: theme.colors.white, borderRadius: 16, padding: theme.spacing.md, marginBottom: theme.spacing.md, borderWidth: 1, borderColor: theme.colors.border },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  sectionTitle: { fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text },
+  label: { color: theme.colors.text, marginBottom: 6, fontSize: theme.typography.fontSize.sm },
+  input: {
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     color: theme.colors.text,
+    marginBottom: theme.spacing.md,
   },
-  appId: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    color: theme.colors.white,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  cardBody: {
-    marginBottom: 15,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  scoreText: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  selectInput: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  textarea: { minHeight: 90, textAlignVertical: 'top' },
+  inlineRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: theme.spacing.sm },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  chip: { backgroundColor: theme.colors.background, color: theme.colors.text, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14 },
+  chipActive: { backgroundColor: theme.colors.primary + '15', color: theme.colors.primary },
+
+  infoSection: { backgroundColor: theme.colors.successLight, borderColor: theme.colors.success + '30' },
+  badgeIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.success + '15',
     alignItems: 'center',
-  },
-  actionButton: {
-    flex: 1,
+    justifyContent: 'center',
     marginRight: 10,
   },
-  approvalButtons: {
-    flexDirection: 'row',
-  },
-  iconButton: {
-    width: 40,
-    marginLeft: 10,
-  },
-  approveButton: {
-    backgroundColor: theme.colors.success,
-  },
-  rejectButton: {
-    borderColor: theme.colors.error,
-  },
+  infoTextWrap: { flex: 1, marginRight: 8 },
+  scoreTitle: { fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text },
+
+  submitBtn: { marginTop: theme.spacing.sm },
 });
 
 export default LoanApprovalScreen;

@@ -121,7 +121,7 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={[theme.colors.primary + '20', theme.colors.white]}
+        colors={[theme.colors.secondary + '30', theme.colors.white]}
         style={styles.gradient}>
       <Header title="Create Crop Record" style={styles.header} onBack={() => {
         navigation.goBack();

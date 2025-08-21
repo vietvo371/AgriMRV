@@ -5,6 +5,7 @@ import { theme } from '../theme/colors';
 import Header from '../component/Header';
 import RecordCard from '../component/RecordCard';
 import { deriveRecentBatches } from '../utils/mockData';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface RecordListScreenProps { navigation: any }
 
@@ -72,11 +73,6 @@ const RecordListScreen: React.FC<RecordListScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         ))}
       </View>
-
-      <View style={styles.resultsHeader}>
-        <Text style={styles.resultsText}>{filtered.length} records</Text>
-      </View>
-
     </View>
   );
 
@@ -106,20 +102,14 @@ const RecordListScreen: React.FC<RecordListScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <Header title="All Records" onBack={() => navigation.goBack()} />
+      <LinearGradient
+        colors={[theme.colors.secondary + '30', theme.colors.white]}
+        style={styles.gradient}>
       <FlatList
         data={filtered}
         renderItem={({ item }) => (
           <RecordCard
-            batch={{
-              id: item.id,
-              product_name: item.product_name,
-              category: item.category,
-              weight: item.weight,
-              harvest_date: item.harvest_date,
-              cultivation_method: item.cultivation_method,
-              image: item.images?.product || null,
-              status: item.status,
-            }}
+            record={item}
             onPress={() => handleRecordPress(item.id)}
           />
         )}
@@ -129,6 +119,7 @@ const RecordListScreen: React.FC<RecordListScreenProps> = ({ navigation }) => {
         ListEmptyComponent={!loading ? renderEmpty : null}
         showsVerticalScrollIndicator={false}
       />
+      </LinearGradient>
       {/* No network loading overlay needed for mock data */}
     </SafeAreaView>
   );
@@ -138,6 +129,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  gradient: {
+    flex: 1,
   },
   listContent: {
     padding: theme.spacing.lg,

@@ -34,6 +34,9 @@ import QRScanScreen from '../screens/QRScanScreen';
 import CreateRecordScreen from '../screens/CreateRecordScre';
 import RecordDetailScreen from '../screens/RecordDetailScreen';
 import RecordListScreen from '../screens/RecordListScreen';
+import AiVerifyScreen from '../screens/AiVerifyScreen';
+import AiAnalysisDetailScreen from '../screens/AiAnalysisDetailScreen';
+import BanksScreen from '../screens/BanksScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -78,12 +81,12 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="Seasons"
-        component={SeasonProfileScreen}
+        name="AiVerify"
+        component={AiVerifyScreen}
         options={{
-          title: 'Seasons',
+          title: 'AI Verify',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="sprout" size={size} color={color} />
+            <Icon name="shield-check" size={size} color={color} />
           ),
         }}
       />
@@ -97,6 +100,17 @@ const MainTabs = () => {
           ),
         }}
       />
+       <Tab.Screen
+        name="Banks"
+        component={BanksScreen}
+        options={{
+          title: 'Banks',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="bank-transfer" size={size} color={color} />
+          ),
+        }}
+      />
+      
       <Tab.Screen
         name="Profile"
         component={FarmerProfileScreen}
@@ -191,6 +205,9 @@ const MainNavigator = () => {
         <Stack.Screen name="CreditDashboard" component={CreditDashboardScreen as any} />
         <Stack.Screen name="BlockchainAnchor" component={BlockchainAnchorScreen} />
         <Stack.Screen name="TrainingQuiz" component={TrainingQuizScreen} />
+        <Stack.Screen name="AiVerify" component={AiVerifyScreen as any} />
+        <Stack.Screen name="AiAnalysisDetail" component={AiAnalysisDetailScreen as any} />
+
         
         {/* Bank/Coop Screens */}
         <Stack.Screen name="BankViewer" component={BankViewerScreen} />
@@ -199,6 +216,7 @@ const MainNavigator = () => {
         <Stack.Screen name="CreateRecord" component={CreateRecordScreen as any} />
         <Stack.Screen name="RecordDetail" component={RecordDetailScreen as any} />
         <Stack.Screen name="RecordList" component={RecordListScreen as any} />
+        <Stack.Screen name="Banks" component={BanksScreen as any} />
       </Stack.Group>
     </Stack.Navigator>
   );

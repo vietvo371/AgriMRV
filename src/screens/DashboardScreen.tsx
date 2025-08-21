@@ -91,7 +91,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={[theme.colors.primary + '20', theme.colors.white]}
+        colors={[theme.colors.secondary + '30', theme.colors.white]}
         style={styles.gradient}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -158,7 +158,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
           </View>
           <View style={styles.recordsList}>
           {recentBatches.map((batch) => (
-            <RecordCard key={batch.id} batch={batch as any} onPress={() => handleRecordPress(batch.id)} />
+            <RecordCard key={batch.id} record={batch as any} onPress={() => handleRecordPress(batch.id)} />
           ))}
           {recentBatches.length === 0 && (
             <Text style={styles.emptyText}>No crop records found</Text>

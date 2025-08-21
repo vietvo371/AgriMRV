@@ -18,12 +18,9 @@ import CircularProgress from '../component/CircularProgress';
 import LinearGradient from 'react-native-linear-gradient';
 import { Shadow } from 'react-native-shadow-2';
 import { LineChart } from 'react-native-chart-kit';
-import Animated, { 
-  FadeInDown, 
+import Animated, {
+  FadeInDown,
   FadeInRight,
-  withSpring,
-  useAnimatedStyle,
-  useSharedValue,
 } from 'react-native-reanimated';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
 
@@ -48,6 +45,9 @@ interface ScoreBreakdown {
   maxScore: number;
   icon: string;
   color: string;
+  impact: 'high' | 'medium' | 'low';
+  trend: 'up' | 'down' | 'stable';
+  description: string;
 }
 
 // Avoid animating custom components directly to prevent nativeTag errors.
@@ -58,8 +58,7 @@ const CreditDashboardScreen: React.FC<Props> = ({
   route,
 }) => {
   const [loading, setLoading] = useState(true);
-  const [showBreakdown, setShowBreakdown] = useState(false);
-  const rotateValue = useSharedValue(0);
+  const [activeTab, setActiveTab] = useState<'breakdown' | 'how' | 'improve'>('breakdown');
 
   const [scores, setScores] = useState({
     imageScore: 85,
@@ -72,8 +71,11 @@ const CreditDashboardScreen: React.FC<Props> = ({
       category: 'Image Authenticity',
       score: 85,
       maxScore: 100,
-      icon: 'image-check',
+      icon: 'image',
       color: theme.colors.success,
+      impact: 'high',
+      trend: 'up',
+      description: 'AI verification of crop images and authenticity signals',
     },
     {
       category: 'Yield Risk',
@@ -81,6 +83,9 @@ const CreditDashboardScreen: React.FC<Props> = ({
       maxScore: 100,
       icon: 'sprout',
       color: theme.colors.warning,
+      impact: 'high',
+      trend: 'stable',
+      description: 'Estimated risk based on historical yields and season factors',
     },
     {
       category: 'Historical Performance',
@@ -88,6 +93,9 @@ const CreditDashboardScreen: React.FC<Props> = ({
       maxScore: 100,
       icon: 'chart-line',
       color: theme.colors.info,
+      impact: 'medium',
+      trend: 'up',
+      description: 'Consistency and delivery reliability over time',
     },
     {
       category: 'Training Score',
@@ -95,6 +103,9 @@ const CreditDashboardScreen: React.FC<Props> = ({
       maxScore: 100,
       icon: 'school',
       color: theme.colors.primary,
+      impact: 'medium',
+      trend: 'up',
+      description: 'Completion of training modules and quizzes',
     },
     {
       category: 'Coop Membership',
@@ -102,6 +113,9 @@ const CreditDashboardScreen: React.FC<Props> = ({
       maxScore: 100,
       icon: 'account-group',
       color: theme.colors.secondary,
+      impact: 'low',
+      trend: 'stable',
+      description: 'Participation and standing within cooperatives',
     },
   ]);
 
@@ -135,169 +149,308 @@ const CreditDashboardScreen: React.FC<Props> = ({
   };
 
   const handleAnchor = () => {
-    (navigation as any).navigate('BlockchainAnchor', { 
+    (navigation as any).navigate('BlockchainAnchor', {
       profileId: 'default',
       score: scores.creditScore
     });
   };
 
-  const rotateStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ rotate: `${rotateValue.value}deg` }],
-    };
-  });
+  // Tabs: 'breakdown' | 'how' | 'improve'
 
-  const toggleBreakdown = () => {
-    setShowBreakdown(!showBreakdown);
-    rotateValue.value = withSpring(showBreakdown ? 0 : 180);
+  const monthlyChange = +6; // mock monthly change
+  const getImpactColor = (impact: 'high' | 'medium' | 'low') => {
+    switch (impact) {
+      case 'high':
+        return theme.colors.error;
+      case 'medium':
+        return theme.colors.warning;
+      default:
+        return theme.colors.success;
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          <Shadow  startColor={'#00000010'} offset={[0, 2]} style={styles.fullWidth}>
-            <Animated.View entering={FadeInDown.duration(500).springify()}>
+      <LinearGradient colors={[theme.colors.secondary + '20', theme.colors.white]} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.fullWidth}>
               <Card style={styles.scoreCard}>
-              <View style={styles.scoreHeader}>
-                {loading ? (
-                  <ShimmerPlaceholder style={styles.shimmer} />
-                ) : (
-                  <CircularProgress
-                    size={120}
-                    width={12}
-                    fill={scores.creditScore}
-                    tintColor={theme.colors.primary}
-                    backgroundColor={theme.colors.border}
-                    rotation={0}>
-                    <View style={styles.scoreCenter}>
-                      <Text style={styles.scoreGrade}>
-                        {getCreditGrade(scores.creditScore)}
-                      </Text>
-                      <Text style={styles.scoreValue}>
-                        {Math.round(scores.creditScore)}
-                      </Text>
+                <View style={styles.scoreHeader}>
+                  {loading ? (
+                    <ShimmerPlaceholder style={styles.shimmer} />
+                  ) : (
+                    <CircularProgress
+                      size={120}
+                      width={12}
+                      fill={scores.creditScore}
+                      tintColor={theme.colors.primary}
+                      backgroundColor={theme.colors.border}
+                      rotation={0}>
+                      <View style={styles.scoreCenter}>
+                        <Text style={styles.scoreGrade}>
+                          {getCreditGrade(scores.creditScore)}
+                        </Text>
+                        <Text style={styles.scoreValue}>
+                          {Math.round(scores.creditScore)}
+                        </Text>
+                      </View>
+                    </CircularProgress>
+                  )}
+                  <View style={styles.scoreInfo}>
+                    <Text style={styles.scoreTitle}>Credit Score</Text>
+                    <Text style={styles.scoreSubtitle}>
+                      Eligible for loan up to ${getEligibleAmount(scores.creditScore)}
+                    </Text>
+                    <View style={styles.deltaRow}>
+                      <Icon name={monthlyChange >= 0 ? 'trending-up' : 'trending-down'} size={16} color={monthlyChange >= 0 ? theme.colors.success : theme.colors.error} />
+                      <Text style={[styles.deltaText, { color: monthlyChange >= 0 ? theme.colors.success : theme.colors.error }]}> {monthlyChange > 0 ? '+' : ''}{monthlyChange} this month</Text>
                     </View>
-                  </CircularProgress>
-                )}
-                <View style={styles.scoreInfo}>
-                  <Text style={styles.scoreTitle}>Credit Score</Text>
-                  <Text style={styles.scoreSubtitle}>
-                    Eligible for loan up to ${getEligibleAmount(scores.creditScore)}
-                  </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.indicators}>
-                <View style={styles.indicator}>
-                  <LinearGradient
-                    colors={[theme.colors.success + '20', theme.colors.success + '10']}
-                    style={styles.indicatorIcon}>
-                    <Icon name="image-check" size={24} color={theme.colors.success} />
-                  </LinearGradient>
-                  <Text style={styles.indicatorLabel}>Image Score</Text>
-                  <Text style={styles.indicatorValue}>{scores.imageScore}/100</Text>
+                <View style={styles.indicators}>
+                  <View style={styles.indicator}>
+                    <LinearGradient
+                      colors={[theme.colors.success + '20', theme.colors.success + '10']}
+                      style={styles.indicatorIcon}>
+                      <Icon name="image-check" size={24} color={theme.colors.success} />
+                    </LinearGradient>
+                    <Text style={styles.indicatorLabel}>Image Score</Text>
+                    <Text style={styles.indicatorValue}>{scores.imageScore}/100</Text>
+                  </View>
+                  <View style={styles.indicator}>
+                    <LinearGradient
+                      colors={[theme.colors.warning + '20', theme.colors.warning + '10']}
+                      style={styles.indicatorIcon}>
+                      <Icon name="trending-down" size={24} color={theme.colors.warning} />
+                    </LinearGradient>
+                    <Text style={styles.indicatorLabel}>Yield Risk</Text>
+                    <Text style={styles.indicatorValue}>{scores.yieldRisk}/100</Text>
+                  </View>
                 </View>
-                <View style={styles.indicator}>
-                  <LinearGradient
-                    colors={[theme.colors.warning + '20', theme.colors.warning + '10']}
-                    style={styles.indicatorIcon}>
-                    <Icon name="trending-down" size={24} color={theme.colors.warning} />
-                  </LinearGradient>
-                  <Text style={styles.indicatorLabel}>Yield Risk</Text>
-                  <Text style={styles.indicatorValue}>{scores.yieldRisk}/100</Text>
-                </View>
-              </View>
               </Card>
             </Animated.View>
-          </Shadow>
+            <View style={styles.chartSection}>
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeaderRow}>
+                  <Icon name="calendar-month" size={18} color={theme.colors.primary} />
+                  <Text style={styles.chartTitle}>Score History</Text>
+                </View>
+                <Text style={styles.chartSubtitle}>Your credit score progression over time</Text>
+                <LineChart
+                  data={historicalScores}
+                  width={width - 40}
+                  height={190}
+                  chartConfig={{
+                    backgroundColor: '#ffffff',
+                    backgroundGradientFrom: '#ffffff',
+                    backgroundGradientTo: '#ffffff',
+                    decimalPlaces: 0,
+                    color: () => theme.colors.primary,
+                    labelColor: () => theme.colors.textLight,
+                    fillShadowGradient: theme.colors.primary,
+                    fillShadowGradientOpacity: 0.2,
+                    propsForDots: {
+                      r: '4',
+                      strokeWidth: '2',
+                      stroke: theme.colors.primary,
+                    },
+                    propsForBackgroundLines: {
+                      stroke: theme.colors.border,
+                    },
+                  }}
+                  withOuterLines={false}
+                  bezier
+                  style={styles.chart}
+                />
+              </Card>
+            </View>
 
-          <View style={styles.chartSection}>
-            <Text style={styles.chartTitle}>Score History</Text>
-            <LineChart
-              data={historicalScores}
-              width={width - 40}
-              height={180}
-              chartConfig={{
-                backgroundColor: '#ffffff',
-                backgroundGradientFrom: '#ffffff',
-                backgroundGradientTo: '#ffffff',
-                decimalPlaces: 0,
-                color: (opacity = 1) => theme.colors.primary,
-                style: {
-                  borderRadius: 16,
-                },
-              }}
-              bezier
-              style={styles.chart}
+            {/* Tabs */}
+            <View style={styles.tabsContainer}>
+              {[
+                { key: 'breakdown', label: 'Score' },
+                { key: 'how', label: 'How' },
+                { key: 'improve', label: 'Improve' },
+              ].map((tab: any) => (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[
+                    styles.tabButton,
+                    activeTab === tab.key && styles.tabButtonActive,
+                  ]}
+                  onPress={() => setActiveTab(tab.key)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === tab.key && styles.tabTextActive,
+                    ]}>
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Tab Content */}
+            {activeTab === 'breakdown' && (
+              <Animated.View entering={FadeInRight.duration(250).springify()}>
+                <Card style={styles.breakdownCard}>
+                  {breakdown.map((item, index) => (
+                    <View
+                      key={item.category}
+                      style={[
+                        styles.breakdownItem,
+                        index < breakdown.length - 1 && styles.breakdownDivider,
+                      ]}>
+                      <View style={styles.breakdownHeader}>
+                        <View style={styles.breakdownLeft}>
+                          <LinearGradient
+                            colors={[item.color + '20', item.color + '10']}
+                            style={styles.breakdownIcon}>
+                            <Icon name={item.icon} size={24} color={item.color} />
+                          </LinearGradient>
+                          <Text style={styles.breakdownCategory}>
+                            {item.category}
+                          </Text>
+                        </View>
+                        <Text style={styles.breakdownScore}>
+                          {item.score}/{item.maxScore}
+                        </Text>
+                      </View>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              backgroundColor: item.color,
+                              width: `${(item.score / item.maxScore) * 100}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.factorMetaRow}>
+                        <Text style={[styles.impactLabel, { color: getImpactColor(item.impact) }]}>{item.impact.toUpperCase()} IMPACT</Text>
+                        <View style={styles.trendRow}>
+                          <Icon name={item.trend === 'up' ? 'trending-up' : item.trend === 'down' ? 'trending-down' : 'minus'} size={14} color={item.trend === 'up' ? theme.colors.success : item.trend === 'down' ? theme.colors.error : theme.colors.textLight} />
+                          <Text style={styles.trendText}>{item.trend}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.factorDesc}>{item.description}</Text>
+                    </View>
+                  ))}
+                </Card>
+              </Animated.View>
+            )}
+
+            {activeTab === 'how' && (
+              <Animated.View entering={FadeInRight.duration(250).springify()}>
+                <Card style={styles.howCard}>
+                  <View style={styles.howHeader}>
+                    <Icon name="shield" size={18} color={theme.colors.primary} />
+                    <Text style={styles.howTitle}>How Your Score Works</Text>
+                  </View>
+                  <Text style={styles.howText}>
+                    Your AgriCred score is calculated using AI analysis of your farming data, including crop quality, harvest
+                    consistency, and farm management practices.
+                  </Text>
+                  <View style={styles.rangeGrid}>
+                    <View style={styles.rangeCol}>
+                      <Text style={styles.rangeLabel}>750-850</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.success }]}>Excellent</Text>
+                    </View>
+                    <View style={styles.rangeCol}>
+                      <Text style={styles.rangeLabel}>650-749</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.info }]}>Good</Text>
+                    </View>
+                    <View style={styles.rangeCol}>
+                      <Text style={styles.rangeLabel}>550-649</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.warning }]}>Fair</Text>
+                    </View>
+                    <View style={styles.rangeCol}>
+                      <Text style={styles.rangeLabel}>300-549</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.error }]}>Poor</Text>
+                    </View>
+                  </View>
+                </Card>
+              </Animated.View>
+            )}
+
+            {activeTab === 'improve' && (
+              <Animated.View entering={FadeInRight.duration(250).springify()}>
+                <Card style={styles.improveCard}>
+                  <View style={styles.improveHeader}>
+                    <Icon name="target" size={18} color={theme.colors.primary} />
+                    <Text style={styles.improveTitle}>Improvement Recommendations</Text>
+                  </View>
+                  <Text style={styles.improveSubtitle}>Actions to boost your credit score</Text>
+                  <View style={styles.improveList}>
+                    {[{
+                      title: 'Upload More Crop Photos',
+                      desc: 'Increase your AI verification score by uploading high-quality crop photos regularly.',
+                      impact: 'Potential impact: +15–25 points',
+                      color: theme.colors.primary,
+                    }, {
+                      title: 'Complete Farm Records',
+                      desc: 'Fill in missing harvest data and farm management details to improve data completeness.',
+                      impact: 'Potential impact: +10–20 points',
+                      color: theme.colors.success,
+                    }, {
+                      title: 'Maintain Consistency',
+                      desc: 'Keep documenting harvests regularly to build a strong consistency track record.',
+                      impact: 'Potential impact: +5–15 points',
+                      color: theme.colors.warning,
+                    }, {
+                      title: 'Connect with Banks',
+                      desc: 'Share your profile with partner banks to unlock better loan opportunities.',
+                      impact: 'Unlock lending opportunities',
+                      color: theme.colors.secondary,
+                    }].map((it, idx) => (
+                      <View key={idx} style={[styles.improveItem, { backgroundColor: (it.color as string) + '10', borderColor: (it.color as string) + '40' }] }>
+                        <View style={[styles.bullet, { backgroundColor: it.color }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.improveItemTitle}>{it.title}</Text>
+                          <Text style={styles.improveItemDesc}>{it.desc}</Text>
+                          <Text style={[styles.improveImpact, { color: it.color }]}>{it.impact}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </Card>
+
+                {/* CTA: Ready for Lending inside Improve */}
+                <View style={styles.lendingCard}>
+                  <View style={styles.lendingHeaderRow}>
+                    <Icon name="shield-check" size={18} color={theme.colors.primary} />
+                    <Text style={styles.lendingTitle}>Ready for Lending?</Text>
+                  </View>
+                  <Text style={styles.lendingDesc}>
+                    Your score qualifies you for agricultural loans with competitive rates. Connect with our partner banks to
+                    explore your options.
+                  </Text>
+                  <ButtonCustom
+                    title="View Loan Options"
+                    icon="chevron-right"
+                    onPress={() => (navigation as any).navigate('LoanApproval', { profileId: 'default', score: scores.creditScore })}
+                    style={styles.loanBtn}
+                  />
+                </View>
+              </Animated.View>
+            )}
+
+            <ButtonCustom
+              title="Anchor to Blockchain"
+              onPress={handleAnchor}
+              style={styles.anchorButton}
+              icon="link-variant"
             />
           </View>
-
-          <TouchableOpacity
-            style={styles.breakdownHeader}
-            onPress={toggleBreakdown}>
-            <Text style={styles.breakdownTitle}>Score Breakdown</Text>
-            <Animated.View style={rotateStyle}>
-              <Icon
-                name="chevron-down"
-                size={24}
-                color={theme.colors.text}
-              />
-            </Animated.View>
-          </TouchableOpacity>
-
-          {showBreakdown && (
-            <Animated.View entering={FadeInRight.duration(300).springify()}>
-              <Card style={styles.breakdownCard}>
-              {breakdown.map((item, index) => (
-                <View
-                  key={item.category}
-                  style={[
-                    styles.breakdownItem,
-                    index < breakdown.length - 1 && styles.breakdownDivider,
-                  ]}>
-                  <View style={styles.breakdownHeader}>
-                    <View style={styles.breakdownLeft}>
-                      <LinearGradient
-                        colors={[item.color + '20', item.color + '10']}
-                        style={styles.breakdownIcon}>
-                        <Icon name={item.icon} size={24} color={item.color} />
-                      </LinearGradient>
-                      <Text style={styles.breakdownCategory}>
-                        {item.category}
-                      </Text>
-                    </View>
-                    <Text style={styles.breakdownScore}>
-                      {item.score}/{item.maxScore}
-                    </Text>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          backgroundColor: item.color,
-                          width: `${(item.score / item.maxScore) * 100}%`,
-                        },
-                      ]}
-                    />
-                  </View>
-                </View>
-              ))}
-              </Card>
-            </Animated.View>
-          )}
-
-          <ButtonCustom
-            title="Anchor to Blockchain"
-            onPress={handleAnchor}
-            style={styles.anchorButton}
-            icon="link-variant"
-          />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -320,6 +473,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: theme.spacing.lg,
     width: '100%',
+    shadowColor: theme.colors.border,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   scoreHeader: {
     flexDirection: 'row',
@@ -354,6 +512,8 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.md,
     color: theme.colors.textLight,
   },
+  deltaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  deltaText: { fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm },
   indicators: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -390,11 +550,59 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bold,
     fontSize: theme.typography.fontSize.lg,
     color: theme.colors.text,
-    marginBottom: theme.spacing.md,
+    marginLeft: theme.spacing.sm,
+  },
+  chartSubtitle: {
+    color: theme.colors.textLight,
+    marginLeft: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   chart: {
     marginVertical: theme.spacing.md,
     borderRadius: 16,
+  },
+  chartCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  chartHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.border,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: theme.spacing.lg,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  tabButtonActive: {
+    backgroundColor: theme.colors.white,
+    shadowColor: '#00000020',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  tabText: {
+    color: theme.colors.textLight,
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  tabTextActive: {
+    color: theme.colors.text,
   },
   breakdownHeader: {
     flexDirection: 'row',
@@ -453,6 +661,11 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
+  factorMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  impactLabel: { fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.xs },
+  trendRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  trendText: { color: theme.colors.textLight, fontSize: theme.typography.fontSize.xs },
+  factorDesc: { marginTop: 6, color: theme.colors.textLight, fontSize: theme.typography.fontSize.sm },
   anchorButton: {
     marginTop: theme.spacing.md,
   },
@@ -463,6 +676,123 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: '100%',
+  },
+  lendingCard: {
+    backgroundColor: theme.colors.primary + '10',
+    borderColor: theme.colors.primary + '20',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  lendingHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  lendingTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+  },
+  lendingDesc: {
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  loanBtn: {
+    alignSelf: 'flex-start',
+  },
+  howCard: {
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginBottom: theme.spacing.xl,
+    padding: theme.spacing.lg,
+  },
+  howHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: theme.spacing.sm,
+  },
+  howTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+  },
+  howText: {
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  rangeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
+  rangeCol: {
+    width: '48%',
+  },
+  rangeLabel: {
+    fontFamily: theme.typography.fontFamily.medium,
+    color: theme.colors.text,
+  },
+  rangeTag: {
+    fontSize: theme.typography.fontSize.sm,
+  },
+  improveCard: {
+    borderColor: theme.colors.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    backgroundColor: 'white',
+  },
+  improveHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  improveTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+  },
+  improveSubtitle: {
+    color: theme.colors.textLight,
+    marginBottom: theme.spacing.md,
+  },
+  improveList: {
+    gap: 12,
+  },
+  improveItem: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: theme.spacing.md,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  bullet: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 8,
+  },
+  improveItemTitle: {
+    fontFamily: theme.typography.fontFamily.medium,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  improveItemDesc: {
+    color: theme.colors.text,
+    opacity: 0.8,
+  },
+  improveImpact: {
+    marginTop: 6,
+    fontSize: theme.typography.fontSize.xs,
   },
 });
 

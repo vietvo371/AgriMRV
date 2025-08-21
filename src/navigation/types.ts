@@ -22,8 +22,10 @@ export type RootStackParamList = {
   RecordDetail: { recordId: string };
   RecordList: undefined;
   QRGenerate: { batchId?: string; batch?: any };
+  AiAnalysisDetail: { analysisId: string };
   BlockchainAnchor: { profileId: string; score: number };
   TrainingQuiz: undefined;
+  Banks: undefined;
   
   // Bank/Coop Flow
   BankViewer: { txHash?: string; farmerId?: string };
@@ -40,7 +42,7 @@ export type MainTabParamList = {
   Seasons: undefined;
   Credit: undefined;
   Profile: undefined;
-
+  AiVerify: undefined;
   // Bank/Coop Tabs
   CreditViewer: undefined;
   Applications: undefined;

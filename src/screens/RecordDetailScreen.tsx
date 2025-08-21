@@ -22,6 +22,7 @@ import api from '../utils/Api';
 import { deriveRecordDetail } from '../utils/mockData';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
+import LinearGradient from 'react-native-linear-gradient';
 
 type RecordDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'RecordDetail'>;
 
@@ -154,6 +155,7 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
   return (
     <SafeAreaView style={styles.container}>
       <Header title="Record Details" onBack={() => navigation.goBack()} />
+      <LinearGradient colors={[theme.colors.secondary + '30', theme.colors.white]} style={{ flex: 1 }}>
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -290,6 +292,7 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
           </TouchableOpacity>
         </View>
       )}
+      </LinearGradient>
     </SafeAreaView>
   );
 };
