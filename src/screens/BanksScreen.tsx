@@ -121,30 +121,30 @@ const BanksScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <View style={styles.logoBox}>
                     <Icon name="bank" size={20} color={theme.colors.primary} />
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.bankRight}>
                     <View style={styles.rowBetween}>
-                      <Text style={styles.bankName}>{b.name}</Text>
-                      <View style={styles.rowStart}>
+                      <Text style={styles.bankName} numberOfLines={1} ellipsizeMode="tail">{b.name}</Text>
+                      <View style={styles.ratingWrap}>
                         <Icon name="star" size={14} color={theme.colors.warning} />
                         <Text style={[styles.muted, { marginLeft: 4 }]}>{b.rating}</Text>
                       </View>
                     </View>
-                    <Text style={[styles.muted, { marginTop: 2 }]}>{b.description}</Text>
+                    <Text style={styles.bankDesc} numberOfLines={2} ellipsizeMode="tail">{b.description}</Text>
                   </View>
                 </View>
 
                 {/* Metrics */}
                 <View style={styles.metricsRow}>
                   <View style={styles.metricCol}>
-                    <Text style={[styles.metricValue, { color: theme.colors.success }]}>{b.interestRange}</Text>
+                    <Text style={[styles.metricValue, { color: theme.colors.success }]} numberOfLines={1}>{b.interestRange}</Text>
                     <Text style={styles.muted}>Interest Rate</Text>
                   </View>
                   <View style={styles.metricCol}>
-                    <Text style={[styles.metricValue, { color: theme.colors.primary }]}>{b.maxLoan}</Text>
+                    <Text style={[styles.metricValue, { color: theme.colors.primary }]} numberOfLines={1}>{b.maxLoan}</Text>
                     <Text style={styles.muted}>Max Loan</Text>
                   </View>
-                  <View style={styles.metricCol}>
-                    <Text style={[styles.metricValue, { color: theme.colors.warning }]}>{b.processing}</Text>
+                  <View style={[styles.metricCol, { flex: 1.2 }]}>
+                    <Text style={[styles.metricValue, { color: theme.colors.warning }]} numberOfLines={1}>{b.processing}</Text>
                     <Text style={styles.muted}>Processing</Text>
                   </View>
                 </View>
@@ -225,7 +225,8 @@ const styles = StyleSheet.create({
   tabText: { color: theme.colors.textLight },
   tabTextActive: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium },
 
-  bankCard: { padding: theme.spacing.md },
+  bankCard: { padding: theme.spacing.md, backgroundColor: theme.colors.white, borderRadius: 16, borderWidth: 1, borderColor: theme.colors.border },
+  bankRight: { flex: 1, minWidth: 0 },
   logoBox: {
     width: 44,
     height: 44,
@@ -243,13 +244,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   bankName: { fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text },
+  bankDesc: { color: theme.colors.textLight, marginTop: 2, lineHeight: 18 },
+  ratingWrap: { flexShrink: 0, alignItems: 'center', flexDirection: 'row' },
 
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: theme.spacing.md,
   },
-  metricCol: { flex: 1, alignItems: 'center' },
+  metricCol: { flex: 1, alignItems: 'center', minWidth: 0 },
   metricValue: { fontFamily: theme.typography.fontFamily.bold, fontSize: 16 },
 
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: theme.spacing.md },

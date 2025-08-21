@@ -18,6 +18,8 @@ import ButtonCustom from '../component/ButtonCustom';
 import LoadingOverlay from '../component/LoadingOverlay';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/Api';
+import Card from '../component/Card';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -35,18 +37,18 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     profile_image: '',
   });
   const [profileData, setProfileData] = useState({
-    'id': "",
-    'full_name': "",
-    'email': "",
-    'phone_number': "",
-    'address': "",
-    'role': "",
-    'profile_image': "",
+    'id': "1",
+    'full_name': "Nguyen Van A",
+    'email': "nguyenvana@gmail.com",
+    'phone_number': "0909090909",
+    'address': "123 Nguyen Van Linh, Q9, TP.HCM",
+    'role': "farmer",
+    'profile_image': "https://via.placeholder.com/150",
     'stats': {
-      'total_batches': "",
-      'active_batches': "",
-      'total_scans': "",
-      'average_rating': ""
+      'total_batches': "10",
+      'active_batches': "5",
+      'total_scans': "100",
+      'average_rating': "4.5"
     }
 
   });
@@ -120,7 +122,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     setLoading(true);
     try {
       console.log('Updating profile with:', formData);
-      const delay = new Promise(resolve => setTimeout(resolve, 1000));
+      const delay = new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
       const [response] = await Promise.all([
         api.put('/user/profile', formData),
         delay,
@@ -164,27 +166,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Header
-        title=""
-        showBack={false}
-        rightComponent={
-          isEditing ? (
-            <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
-              <Icon name="pencil-outline" size={24} color={theme.colors.primary} />
-            </TouchableOpacity>
-          )
-        }
-      />
-      <ScrollView 
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <LinearGradient colors={[theme.colors.secondary + '30', theme.colors.white]} style={{ flex: 1 }}>
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.profileHeader}>
+        <Card style={[styles.profileHeader, styles.elevation]}>
           <View style={styles.imageContainer}>
             <ImagePicker
               imageUri={profileData.profile_image}
@@ -240,82 +228,83 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               </View>
             </View>
           </View>
-        </View>
-
-        <View style={styles.formSection}>
-          <View style={styles.sectionHeader}>
-            <Icon name="account-details-outline" size={20} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+        </Card>
+        {/* Profile Overview */}
+        <Card style={[styles.infoCard, styles.elevation]}>
+          <View style={styles.infoHeader}>
+            <View style={styles.headerIcon}><Icon name="account-outline" size={16} color={theme.colors.primary} /></View>
+            <Text style={styles.infoTitle}>Profile Overview</Text>
           </View>
-
-          <View style={styles.form}>
-            <InputCustom
-              label="Full Name"
-              value={formData.full_name}
-              onChangeText={value =>
-                setFormData(prev => ({ ...prev, full_name: value }))
-              }
-              error={errors.full_name}
-              editable={isEditing}
-              required
-            />
-
-            <InputCustom
-              label="Email"
-              value={formData.email}
-              onChangeText={value =>
-                setFormData(prev => ({ ...prev, email: value }))
-              }
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={errors.email}
-              editable={!isEditing}
-              required
-            />
-
-            <InputCustom
-              label="Phone Number"
-              value={formData.phone_number}
-              onChangeText={value =>
-                setFormData(prev => ({ ...prev, phone_number: value }))
-              }
-              keyboardType="phone-pad"
-              error={errors.phone_number}
-              editable={isEditing}
-              required
-            />
-
-            <InputCustom
-              label="Address"
-              value={formData.address}
-              onChangeText={value =>
-                setFormData(prev => ({ ...prev, address: value }))
-              }
-              multiline
-              numberOfLines={3}
-              error={errors.address}
-              editable={isEditing}
-              required
-            />
+          <View style={styles.twoCol}>
+            <View style={styles.colItem}>
+              <Text style={styles.muted}>Name</Text>
+              <Text style={styles.value}>{profileData.full_name || '—'}</Text>
+            </View>
+            <View style={styles.colItem}>
+              <Text style={styles.muted}>Role</Text>
+              <View style={[styles.badgePill, { backgroundColor: theme.colors.background }]}><Text style={styles.badgeText}>{profileData.role || '—'}</Text></View>
+            </View>
           </View>
+          <View style={styles.twoCol}>
+            <View style={styles.colItem}><Text style={styles.muted}>Phone</Text><Text style={styles.value}>{profileData.phone_number || '—'}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Email</Text><Text style={styles.value}>{profileData.email || '—'}</Text></View>
+          </View>
+        </Card>
 
-          {isEditing && (
-            <ButtonCustom
-              title="Save Changes"
-              onPress={handleSave}
-              style={styles.saveButton}
-            />
-          )}
+        {/* Farm Details */}
+        <Card style={[styles.infoCard, styles.elevation]}>
+          <View style={styles.infoHeader}>
+            <View style={styles.headerIcon}><Icon name="map-marker-radius-outline" size={16} color={theme.colors.primary} /></View>
+            <Text style={styles.infoTitle}>Farm Details</Text>
+          </View>
+          <View style={styles.twoCol}>
+            <View style={styles.colItem}><Text style={styles.muted}>Crop Type</Text><Text style={styles.value}>{'rice'}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Area (Ha)</Text><Text style={styles.value}>{'99 ha'}</Text></View>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.twoCol}>
+            <View style={styles.colItem}><Text style={styles.muted}>Expected Yield</Text><Text style={styles.value}>{'99 tons'}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Sowing Date</Text><Text style={styles.value}>{'2025-07-31'}</Text></View>
+          </View>
+        </Card>
 
+        {/* Memberships & Training */}
+        <Card style={[styles.infoCard, styles.elevation]}>
+          <View style={styles.infoHeader}>
+            <View style={styles.headerIcon}><Icon name="badge-account-horizontal-outline" size={16} color={theme.colors.primary} /></View>
+            <Text style={styles.infoTitle}>Memberships & Training</Text>
+          </View>
+          <View style={{ gap: 16 }}>
+            <View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.value}>Cooperative Member</Text>
+                <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.success }]}>Active</Text></View>
+              </View>
+              <Text style={[styles.muted, { marginTop: 4 }]}>green-valley</Text>
+            </View>
+            <View>
+              <View style={styles.rowBetween}>
+                <Text style={styles.value}>Training Completed</Text>
+                <View style={[styles.badgePill, { backgroundColor: theme.colors.warning + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.warning }]}>85% Score</Text></View>
+              </View>
+              <Text style={[styles.muted, { marginTop: 4 }]}>Agricultural Best Practices</Text>
+            </View>
+          </View>
+        </Card>
+        <View style={styles.logoutContainer}>
           <ButtonCustom
             title="Logout"
-            variant="outline"
+            variant="primary"
+            icon="logout-variant"
             onPress={handleLogout}
             style={styles.logoutButton}
           />
         </View>
       </ScrollView>
-      <LoadingOverlay visible={loading} message="Updating profile..." />
+        {/* Logout button */}
+       
+        <LoadingOverlay visible={loading} message="Updating profile..." />
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -333,18 +322,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
+  elevation: { ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }, android: { elevation: 2 } }) },
   imageContainer: {
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
@@ -403,17 +382,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -444,12 +412,29 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xl,
     marginBottom: theme.spacing.md,
   },
-  logoutButton: {
-    marginTop: theme.spacing.md,
-  },
+  logoutButton: { borderColor: theme.colors.error },
   imagePicker: {
     marginBottom: theme.spacing.md,
   },
+  infoCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginTop: theme.spacing.lg,
+  },
+  infoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.spacing.md },
+  headerIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.secondary + '25' },
+  infoTitle: { fontFamily: theme.typography.fontFamily.bold, color: theme.colors.text },
+  twoCol: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.sm },
+  colItem: { flex: 1, paddingRight: theme.spacing.lg },
+  muted: { color: theme.colors.textLight },
+  value: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium },
+  badgePill: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: theme.colors.background, borderRadius: 12, alignSelf: 'flex-start' },
+  badgeText: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm },
+  inlineRow: { flexDirection: 'row', alignItems: 'center' },
+  infoDivider: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.sm },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  logoutContainer: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.lg, marginTop: theme.spacing.lg },
 });
 
 export default ProfileScreen; 

@@ -37,6 +37,7 @@ import RecordListScreen from '../screens/RecordListScreen';
 import AiVerifyScreen from '../screens/AiVerifyScreen';
 import AiAnalysisDetailScreen from '../screens/AiAnalysisDetailScreen';
 import BanksScreen from '../screens/BanksScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -106,14 +107,14 @@ const MainTabs = () => {
         options={{
           title: 'Banks',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="bank-transfer" size={size} color={color} />
+            <Icon name="bank-transfer" size={size + 4} color={color} />
           ),
         }}
       />
       
       <Tab.Screen
         name="Profile"
-        component={FarmerProfileScreen}
+        component={ProfileScreen}
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
@@ -217,6 +218,7 @@ const MainNavigator = () => {
         <Stack.Screen name="RecordDetail" component={RecordDetailScreen as any} />
         <Stack.Screen name="RecordList" component={RecordListScreen as any} />
         <Stack.Screen name="Banks" component={BanksScreen as any} />
+        <Stack.Screen name="Profile" component={ProfileScreen as any} />
       </Stack.Group>
     </Stack.Navigator>
   );
