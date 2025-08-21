@@ -9,6 +9,7 @@ import React from 'react';
 import { StatusBar, useColorScheme } from 'react-native';
 import { NavigationContainer, Theme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import MainNavigator from './src/navigation/MainTabNavigator';
 import { theme } from './src/theme/colors';
 import { AuthProvider } from './src/contexts/AuthContext';
@@ -47,17 +48,19 @@ const App = () => {
   };
 
   return (
-    <AuthProvider>
-      <SafeAreaProvider>
-        <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor={theme.colors.background}
-        />
-        <NavigationContainer theme={navigationTheme}>
-          <MainNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <SafeAreaProvider>
+          <StatusBar
+            barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+            backgroundColor={theme.colors.background}
+          />
+          <NavigationContainer theme={navigationTheme}>
+            <MainNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 };
 

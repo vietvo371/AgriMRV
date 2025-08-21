@@ -45,8 +45,8 @@ const mockNotifications = [
   {
     id: '4',
     type: 'system',
-    title: 'Welcome to AgriTrace',
-    message: 'Thank you for joining AgriTrace! Start by creating your first batch.',
+    title: 'Welcome to AgriCred',
+    message: 'Thank you for joining AgriCred! Start by creating your first batch.',
     timestamp: '2024-03-10T09:00:00Z',
     read: true,
   },

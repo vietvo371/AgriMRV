@@ -11,7 +11,9 @@ export type RootStackParamList = {
   BatchDetail: { batchId: string };
   AdminDashboard: undefined;
   Notifications: undefined;
-};
+  Onboarding: undefined;
+  OTPVerification: { identifier: string; type: 'phone' | 'email' };
+};  
 
 export type MainTabParamList = {
   Home: undefined;

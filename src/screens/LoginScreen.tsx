@@ -10,13 +10,16 @@ import {
   ScrollView,
   SafeAreaView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme/colors';
 import { useAuth } from '../contexts/AuthContext';
 import InputCustom from '../component/InputCustom';
 import ButtonCustom from '../component/ButtonCustom';
 import LoadingOverlay from '../component/LoadingOverlay';
+import api from '../utils/Api';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface LoginScreenProps {
@@ -27,29 +30,36 @@ const { width } = Dimensions.get('window');
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ identifier?: string }>({});
+  const [isPhoneNumber, setIsPhoneNumber] = useState(false);
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { identifier?: string } = {};
 
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    if (!identifier) {
+      newErrors.identifier = 'Email or phone number is required';
+    } else if (isPhoneNumber) {
+      // Validate phone number format (adjust regex as needed)
+      if (!/^\+?[\d\s-]{10,}$/.test(identifier)) {
+        newErrors.identifier = 'Please enter a valid phone number';
+      }
+    } else {
+      // Validate email format
+      if (!/\S+@\S+\.\S+/.test(identifier)) {
+        newErrors.identifier = 'Please enter a valid email';
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const detectInputType = (value: string) => {
+    // Check if input looks like a phone number
+    const isPhone = /^[\d\s+-]+$/.test(value);
+    setIsPhoneNumber(isPhone);
   };
 
   const handleLogin = async () => {
@@ -59,22 +69,40 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      await signIn({ email, password });
-      navigation.replace('MainTabs');
+      // Request OTP
+      type: isPhoneNumber ? 'phone' : 'email'
+
+      // const response = await api.post('/auth/request-otp', {
+      //   identifier: identifier,
+      //   type: isPhoneNumber ? 'phone' : 'email'
+      // });
+
+      // Navigate to OTP verification screen
+      navigation.navigate('OTPVerification', {
+        identifier: identifier,
+        type: isPhoneNumber ? 'phone' : 'email'
+      });
     } catch (error: any) {
       console.log('Login error:', error);
       
-      // Xử lý lỗi validation từ API
+      // Handle validation errors
       if (error.errors) {
         setErrors({
-          email: error.errors.email?.[0],
-          password: error.errors.password?.[0]
+          identifier: error.errors.identifier?.[0]
         });
       } else {
-        // Xử lý các lỗi khác (network, timeout...)
+        // Handle other errors (network, timeout...)
+        const errorMessage = error.message || 'An error occurred during login';
         setErrors({
-          email: error.message
+          identifier: errorMessage
         });
+        
+        // Show error message to user
+        Alert.alert(
+          'Login Failed',
+          errorMessage,
+          [{ text: 'OK' }]
+        );
       }
     } finally {
       setLoading(false);
@@ -95,14 +123,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             <View style={styles.content}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={require('../assets/images/logo.jpg')}
+                  source={require('../assets/images/logo.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
                 <View style={styles.titleContainer}>
-                  <Text style={styles.title}>Welcome Back!</Text>
+                  <Text style={styles.title}>Welcome to AgriCred</Text>
                   <Text style={styles.subtitle}>
-                    Sign in to continue tracking your agricultural products
+                    Enter your phone number or email to continue
                   </Text>
                 </View>
               </View>
@@ -110,75 +138,42 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
               <View style={styles.formContainer}>
                 <View style={styles.form}>
                   <InputCustom
-                    label="Email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
+                    label="Phone Number or Email"
+                    placeholder="Enter your phone number or email"
+                    value={identifier}
+                    onChangeText={(value) => {
+                      setIdentifier(value);
+                      detectInputType(value);
+                    }}
+                    keyboardType={isPhoneNumber ? "phone-pad" : "email-address"}
                     autoCapitalize="none"
-                    error={errors.email}
+                    error={errors.identifier}
                     required
-                    leftIcon="email-outline"
+                    leftIcon={isPhoneNumber ? "phone-outline" : "email-outline"}
                     containerStyle={styles.input}
                   />
-
-                  <InputCustom
-                    label="Password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    error={errors.password}
-                    required
-                    leftIcon="lock-outline"
-                    rightIcon={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    onRightIconPress={() => setShowPassword(!showPassword)}
-                    containerStyle={styles.input}
-                  />
-
-                  <TouchableOpacity style={styles.forgotPassword}>
-                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                  </TouchableOpacity>
 
                   <ButtonCustom
-                    title="Sign In"
+                    title="Send OTP"
                     onPress={handleLogin}
                     style={styles.loginButton}
                   />
-                </View>
 
-                <View style={styles.dividerContainer}>
-                  <View style={styles.divider} />
-                  <Text style={styles.dividerText}>OR</Text>
-                  <View style={styles.divider} />
-                </View>
-
-                <View style={styles.socialButtons}>
-                  <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                    <Icon name="google" size={24} color="#DB4437" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
-                    <Icon name="facebook" size={24} color="#4267B2" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.socialButton, styles.appleButton]}>
-                    <Icon name="apple" size={24} color="#000000" />
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Register')}
+                    style={styles.registerLink}>
+                    <Text style={styles.registerText}>
+                      Don't have an account?{' '}
+                      <Text style={styles.registerLinkText}>Create Account</Text>
+                    </Text>
                   </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Register')}
-                  style={styles.registerLink}>
-                  <Text style={styles.registerText}>
-                    Don't have an account?{' '}
-                    <Text style={styles.registerLinkText}>Sign Up</Text>
-                  </Text>
-                </TouchableOpacity>
               </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
-      <LoadingOverlay visible={loading} message="Signing in..." />
+      <LoadingOverlay visible={loading} message="Sending OTP..." />
     </SafeAreaView>
   );
 };
@@ -231,7 +226,8 @@ const styles = StyleSheet.create({
   formContainer: {
     backgroundColor: theme.colors.white,
     borderRadius: theme.borderRadius.xl,
-    padding: theme.spacing.xl,
+    padding: theme.spacing.xxl,
+    marginBottom: 140,
     ...Platform.select({
       ios: {
         shadowColor: theme.colors.primary,

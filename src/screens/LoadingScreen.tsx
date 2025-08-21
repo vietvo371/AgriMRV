@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme/colors';
 
@@ -16,22 +17,37 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ navigation }) => {
   const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
-    setTimeout(() => {
-    if (!loading) {
-      // Only navigate when loading is complete
-      if (isAuthenticated) {
-        navigation.replace('MainTabs');
-      } else {
-          navigation.replace('Login');
-        }
+    const checkFirstLaunch = async () => {
+      try {
+        const isFirstLaunch = await AsyncStorage.getItem('isFirstLaunch');
+        
+        setTimeout(async () => {
+          if (!loading) {
+            if (isAuthenticated) {
+              navigation.replace('MainTabs');
+            } else {
+              // Nếu chưa từng mở app (isFirstLaunch là null hoặc không tồn tại)
+              if (isFirstLaunch === null) {
+                navigation.replace('Onboarding');
+              } else {
+                navigation.replace('Login');
+              }
+            }
+          }
+        }, 1500);
+      } catch (error) {
+        console.error('Error checking first launch:', error);
+        navigation.replace('Login');
       }
-    }, 1500);
+    };
+
+    checkFirstLaunch();
   }, [isAuthenticated, loading, navigation]);
 
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/logo.jpg')}
+        source={require('../assets/images/logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />

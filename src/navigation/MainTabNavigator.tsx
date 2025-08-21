@@ -1,5 +1,6 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator, NativeStackNavigationOptions } from '@react-navigation/native-stack';
+import { Animated, Easing } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme/colors';
@@ -20,6 +21,8 @@ import QRScanScreen from '../screens/QRScanScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import OTPVerificationScreen from '../screens/OTPVerificationScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -38,6 +41,11 @@ const MainTabs = () => {
           paddingBottom: 8,
           paddingTop: 8,
           marginBottom: 10,
+          elevation: 8,
+          shadowColor: theme.colors.primary,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
         },
         tabBarLabelStyle: {
           fontFamily: theme.typography.fontFamily.medium,
@@ -82,14 +90,22 @@ const MainNavigator = () => {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
+        animationDuration: 300,
+        animationTypeForReplace: 'push',
+        presentation: 'card',
+        contentStyle: {
+          backgroundColor: theme.colors.white,
+        },
       }}>
       {/* Initial Loading Screen */}
       <Stack.Screen name="Loading" component={LoadingScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
 
       {/* Auth Stack */}
       <Stack.Group>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
       </Stack.Group>
 
       {/* Main Stack */}

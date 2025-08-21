@@ -17,22 +17,33 @@ import ButtonCustom from '../component/ButtonCustom';
 import LoadingOverlay from '../component/LoadingOverlay';
 import api from '../utils/Api';
 
-interface QRGenerateScreenProps {
-  navigation: any;
-  route: {
-    params: {
-      batch: any;
-    };
-  };
-}
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+
+type QRGenerateScreenProps = NativeStackScreenProps<RootStackParamList, 'QRGenerate'>;
 
 const QRGenerateScreen: React.FC<QRGenerateScreenProps> = ({
   navigation,
   route,
 }) => {
   const [loading, setLoading] = useState(false);
-  const { batch } = route.params;
-  console.log(batch);
+  const [batch, setBatch] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchBatch = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/batches/${route.params.batchId}`);
+        setBatch(response.data);
+      } catch (error) {
+        console.error('Error fetching batch:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBatch();
+  }, [route.params.batchId]);
+
   const convertDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -40,7 +51,7 @@ const QRGenerateScreen: React.FC<QRGenerateScreenProps> = ({
       day: 'numeric',
     });
   };
-  const qrValue =` ${"https://agritrace.dzfullstack.com/qr-code"}-${batch.traceability.batch_code}-${batch.id}`;
+  const qrValue = batch ? `https://AgriCred.dzfullstack.com/qr-code-${batch.traceability.batch_code}-${batch.id}` : '';
 
   
   const handleShare = async () => {
@@ -54,7 +65,9 @@ const QRGenerateScreen: React.FC<QRGenerateScreenProps> = ({
   };
 
   const handleViewBatch = () => {
-    navigation.replace('BatchDetail', { batchId: batch.id });
+    if (batch) {
+      navigation.replace('BatchDetail', { batchId: batch.id });
+    }
   };
 
   return (
@@ -83,31 +96,33 @@ const QRGenerateScreen: React.FC<QRGenerateScreenProps> = ({
             />
           </View>
 
-          <Card variant="outlined" style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Batch Summary</Text>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Product:</Text>
-              <Text style={styles.summaryValue}>{batch.product_name}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Category:</Text>
-              <Text style={styles.summaryValue}>{batch.category}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Weight:</Text>
-              <Text style={styles.summaryValue}>{batch.weight} kg</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Harvest Date:</Text>
-              <Text style={styles.summaryValue}>{convertDate(batch.harvest_date)}</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Method:</Text>
-              <Text style={styles.summaryValue}>
-                {batch.cultivation_method}
-              </Text>
-            </View>
-          </Card>
+          {batch && (
+            <Card variant="outlined" style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Batch Summary</Text>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Product:</Text>
+                <Text style={styles.summaryValue}>{batch.product_name}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Category:</Text>
+                <Text style={styles.summaryValue}>{batch.category}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Weight:</Text>
+                <Text style={styles.summaryValue}>{batch.weight} kg</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Harvest Date:</Text>
+                <Text style={styles.summaryValue}>{convertDate(batch.harvest_date)}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Method:</Text>
+                <Text style={styles.summaryValue}>
+                  {batch.cultivation_method}
+                </Text>
+              </View>
+            </Card>
+          )}
 
           <View style={styles.actions}>
             <ButtonCustom

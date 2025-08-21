@@ -4,13 +4,16 @@ import api from '../utils/Api';
 import { saveToken } from '../utils/TokenManager';
 
 interface User {
-  id: number;
-  full_name: string;
-  email: string;
-  phone_number?: string;
-  address?: string;
+  user_id: number;
   role: string;
-  profile_image?: string;
+  name: string;
+  dob: string;
+  phone: string;
+  email: string;
+  gps_location: string;
+  org_name?: string;
+  employee_id?: string;
+  created_at: string;
 }
 
 interface AuthContextData {
@@ -19,13 +22,16 @@ interface AuthContextData {
   loading: boolean;
   signIn: (credentials: { email: string; password: string }) => Promise<void>;
   signUp: (userData: {
-    full_name: string;
+    name: string;
     email: string;
     password: string;
     password_confirmation: string;
-    phone_number: string;
-    address: string;
+    phone: string;
+    dob: string;
     role: string;
+    gps_location: string;
+    org_name?: string;
+    employee_id?: string;
   }) => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -42,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   async function loadStorageData(): Promise<void> {
     try {
-      const storedUser = await AsyncStorage.getItem('@AgriTrace:user');
-      const storedToken = await AsyncStorage.getItem('@AgriTrace:token');
+      const storedUser = await AsyncStorage.getItem('@AgriCred:user');
+      const storedToken = await AsyncStorage.getItem('@AgriCred:token');
 
       if (storedUser && storedToken) {
         setUser(JSON.parse(storedUser));
@@ -57,14 +63,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (credentials: { email: string; password: string }) => {
     try {
+      console.log('Sending login credentials:', credentials);
       const response = await api.post('/auth/login', credentials);
-      const { customer, token } = response.data;
+      console.log('Login response:', response.data);
+      const { user, token } = response.data;
 
-      await AsyncStorage.setItem('@AgriTrace:user', JSON.stringify(customer));
-      await AsyncStorage.setItem('@AgriTrace:token', token);
+      // Ensure user data matches our interface
+      const formattedUser: User = {
+        user_id: user.user_id,
+        role: user.role,
+        name: user.name,
+        dob: user.dob,
+        phone: user.phone,
+        email: user.email,
+        gps_location: user.gps_location,
+        org_name: user.org_name,
+        employee_id: user.employee_id,
+        created_at: user.created_at,
+      };
+
+      await AsyncStorage.setItem('@AgriCred:user', JSON.stringify(formattedUser));
+      await AsyncStorage.setItem('@AgriCred:token', token);
       await saveToken(token);
 
-      setUser(customer);
+      setUser(formattedUser);
     } catch (error: any) {
       console.error('Error signing in:', error.response?.data);
       // Ném lỗi với định dạng chuẩn hóa
@@ -85,25 +107,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (userData: {
-    full_name: string;
+    name: string;
     email: string;
     password: string;
     password_confirmation: string;
-    phone_number: string;
-    address: string;
+    phone: string;
+    dob: string;
     role: string;
+    gps_location: string;
+    org_name?: string;
+    employee_id?: string;
   }) => {
     try {
-      console.log(userData);
-      const response = await api.post('/auth/register', userData);
-      console.log(response.data);
-      const { customer, token } = response.data;
+      // Format the data to match the database schema
+      const formattedData = {
+        ...userData,
+        // Convert GPS string to object for API
+        gps_location: userData.gps_location.split(',').map(coord => coord.trim()).join(','),
+        // Only include optional fields if they have values
+        ...(userData.org_name ? { org_name: userData.org_name } : {}),
+        ...(userData.employee_id ? { employee_id: userData.employee_id } : {}),
+      };
 
-      await AsyncStorage.setItem('@AgriTrace:user', JSON.stringify(customer));
-      await AsyncStorage.setItem('@AgriTrace:token', token);
+      console.log('Sending registration data:', formattedData);
+      const response = await api.post('/auth/register', formattedData);
+      console.log('Registration response:', response.data);
+      const { user, token } = response.data;
+
+      await AsyncStorage.setItem('@AgriCred:user', JSON.stringify(user));
+      await AsyncStorage.setItem('@AgriCred:token', token);
       await saveToken(token);
 
-      setUser(customer);
+      setUser(user);
     } catch (error: any) {
       console.error('Error signing up:', error.response?.data);
       // Ném lỗi với định dạng chuẩn hóa
@@ -125,8 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await AsyncStorage.removeItem('@AgriTrace:user');
-      await AsyncStorage.removeItem('@AgriTrace:token');
+      await AsyncStorage.removeItem('@AgriCred:user');
+      await AsyncStorage.removeItem('@AgriCred:token');
       setUser(null);
     } catch (error: any) {
       console.error('Error signing out:', error.response.data);
