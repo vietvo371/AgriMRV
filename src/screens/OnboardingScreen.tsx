@@ -34,31 +34,31 @@ const onboardingData = [
     id: 4,
     title: 'Điểm số dễ hiểu',
     description: 'Chấm điểm tín dụng minh bạch (0–100), giải thích rõ từng yếu tố.',
-    image: require('../assets/images/started/hinh5.jpg'),
+    image: require('../assets/images/started/hinh1.jpg'),
   },
   {
     id: 5,
     title: 'Mở rộng cơ hội vay vốn',
     description: 'Nông dân không cần thế chấp vẫn có thể tiếp cận vốn.',
-    image: require('../assets/images/started/hinh10.jpg'),
+    image: require('../assets/images/started/hinh2.jpg'),
   },
   {
     id: 6,
     title: 'Tài chính toàn diện',
     description: 'Giảm tín dụng đen, mang lại sự thịnh vượng cho cộng đồng nông thôn.',
-    image: require('../assets/images/started/hinh11.jpg'),
+    image: require('../assets/images/started/hinh3.jpg'),
   },
   {
     id: 7,
     title: 'Hồ sơ tín dụng số',
     description: 'Chia sẻ dễ dàng với ngân hàng và hợp tác xã để xin vay.',
-    image: require('../assets/images/started/hinh12.jpg'),
+    image: require('../assets/images/started/hinh4.jpg'),
   },
   {
     id: 8,
     title: 'AgriCred – Trust in Every Harvest',
     description: 'Mỗi mùa vụ trở thành bằng chứng số minh bạch, giúp vay vốn công bằng.',
-    image: require('../assets/images/started/hinh9.jpg'),
+    image: require('../assets/images/started/hinh5.jpg'),
   },
 
 ];
@@ -110,7 +110,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               style={styles.welcomeText}
               entering={FadeInUp.springify().mass(1).damping(30).delay(500)}
             >
-              Chào mừng đến với
+              Welcome to
             </Animated.Text>
 
             <Animated.Text
@@ -124,7 +124,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               style={styles.description}
               entering={FadeInUp.springify().mass(1).damping(30).delay(500)}
             >
-              Đồng hành cùng nông dân Việt Nam trên hành trình phát triển bền vững
+              Join us on the journey to sustainable development with Vietnamese farmers
             </Animated.Text>
 
             <AnimatedPressable
@@ -133,7 +133,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               entering={FadeInUp.springify().mass(1).damping(30).delay(500)}
             >
               <Animated.Text style={styles.buttonText}>
-                Bắt đầu ngay
+                Start now
               </Animated.Text>
             </AnimatedPressable>
           </View>

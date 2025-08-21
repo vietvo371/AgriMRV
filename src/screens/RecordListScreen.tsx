@@ -1,142 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  SafeAreaView,
-  TextInput,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, TextInput, TouchableOpacity, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme/colors';
 import Header from '../component/Header';
 import RecordCard from '../component/RecordCard';
-import SelectCustom from '../component/SelectCustom';
-import LoadingOverlay from '../component/LoadingOverlay';
-import api from '../utils/Api';
+import { deriveRecentBatches } from '../utils/mockData';
 
-interface BatchListScreenProps {
-  navigation: any;
-}
-
-interface BatchListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: 'active' | 'completed' | 'cancelled';
-  sort?: 'newest' | 'oldest';
-}
-
-interface BatchListResponse {
-  data: {
-    items: Array<{
-      id: string;
-      product_name: string;
-      category: string;
-      weight: number;
-      harvest_date: string;
-      cultivation_method: string;
-      status: 'active' | 'completed' | 'cancelled';
-      stats: {
-        total_scans: number;
-        unique_customers: number;
-        average_rating: number;
-      };
-      images: {
-        product: string | null;
-      };
-    }>;
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      total_pages: number;
-    };
-  };
-  message: string;
-}
-
+interface RecordListScreenProps { navigation: any }
 
 const statusOptions = [
   { label: 'All', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Verified', value: 'completed' },
+  { label: 'Submitted', value: 'submitted' },
 ];
 
 
-const BatchListScreen: React.FC<BatchListScreenProps> = ({ navigation }) => {
+const RecordListScreen: React.FC<RecordListScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [batches, setBatches] = useState<BatchListResponse['data']['items']>([]);
-  const [pagination, setPagination] = useState<BatchListResponse['data']['pagination']>({
-    total: 0,
-    page: 1,
-    limit: 10,
-    total_pages: 0
-  });
-  const [sortOptions, setSortOptions] = useState<any[]>([]);
-  const fetchSortOptions = async () => {
-    try {
-      const response = await api.get<any>('/categories/all-public');
-      console.log(response.data);
-      setSortOptions(response.data.data.map((item: any) => ({
-        label: item.name,
-        value: item.id
-      })));
-    } catch (error: any) {
-      console.error('Error fetching categories:', error.response);
-    }
-  };
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'submitted'>('all');
+  const [records, setRecords] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchSortOptions();
+    setLoading(true);
+    const data = deriveRecentBatches();
+    setRecords(data as any[]);
+    setLoading(false);
   }, []);
 
-  const fetchBatches = async (page = currentPage) => {
-    setLoading(true);
-    try {
-      const response = await api.get<BatchListResponse>('/batches/all-farmer', {
-        params: {
-          page,
-          limit: 10,
-          status: statusFilter === 'all' ? undefined : statusFilter,
-          search: searchQuery || undefined,
-          sort: sortOrder
-        }
-      });
-      console.log(response.data);
-      setBatches(response.data.data.items);
-      setPagination(response.data.data.pagination);
-    } catch (error: any) {
-      console.error('Error fetching batches:', error.response);
-      // TODO: Show error message
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filtered = useMemo(() => {
+    return records.filter(r => {
+      const matchStatus = statusFilter === 'all' ? true : r.status === statusFilter;
+      const matchSearch = searchQuery ? r.product_name.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+      return matchStatus && matchSearch;
+    });
+  }, [records, statusFilter, searchQuery]);
 
-  // Fetch when filters change
-  useEffect(() => {
-    setCurrentPage(1); // Reset to first page
-    fetchBatches(1);
-  }, [statusFilter, searchQuery, sortOrder]);
-
-  // Handle pagination
-  const handleLoadMore = () => {
-    if (currentPage < pagination.total_pages && !loading) {
-      setCurrentPage(prev => prev + 1);
-      fetchBatches(currentPage + 1);
-    }
-  };
-
-  const handleBatchPress = (batchId: string) => {
-    navigation.navigate('BatchDetail', { batchId });
+  const handleRecordPress = (recordId: string) => {
+    navigation.navigate('RecordDetail', { recordId });
   };
 
   const renderHeader = () => (
@@ -160,31 +61,20 @@ const BatchListScreen: React.FC<BatchListScreenProps> = ({ navigation }) => {
         ) : null}
       </View>
 
-      <View style={styles.filterRow}>
-        <View style={styles.filterItem}>
-          <SelectCustom
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={statusOptions}
-            placeholder="Status"
-            containerStyle={styles.selectContainer}
-          />
-        </View>
-        <View style={styles.filterItem}>
-          <SelectCustom
-            value={sortOrder}
-            onChange={(value) => setSortOrder(value as any)}
-            options={sortOptions}
-            placeholder="Sort by"
-            containerStyle={styles.selectContainer}
-          />
-        </View>
+      <View style={styles.filterChips}>
+        {statusOptions.map(opt => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[styles.chip, statusFilter === (opt.value as any) && styles.chipActive]}
+            onPress={() => setStatusFilter(opt.value as any)}
+          >
+            <Text style={[styles.chipText, statusFilter === (opt.value as any) && styles.chipTextActive]}>{opt.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <View style={styles.resultsHeader}>
-        <Text style={styles.resultsText}>
-          {pagination.total} {pagination.total === 1 ? 'batch' : 'batches'} found
-        </Text>
+        <Text style={styles.resultsText}>{filtered.length} records</Text>
       </View>
 
     </View>
@@ -215,12 +105,9 @@ const BatchListScreen: React.FC<BatchListScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header
-        title="My Batches"
-        onBack={() => navigation.goBack()}
-      />
+      <Header title="All Records" onBack={() => navigation.goBack()} />
       <FlatList
-        data={batches}
+        data={filtered}
         renderItem={({ item }) => (
           <RecordCard
             batch={{
@@ -233,7 +120,7 @@ const BatchListScreen: React.FC<BatchListScreenProps> = ({ navigation }) => {
               image: item.images?.product || null,
               status: item.status,
             }}
-            onPress={() => handleBatchPress(item.id)}
+            onPress={() => handleRecordPress(item.id)}
           />
         )}
         keyExtractor={item => item.id}
@@ -241,15 +128,8 @@ const BatchListScreen: React.FC<BatchListScreenProps> = ({ navigation }) => {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={!loading ? renderEmpty : null}
         showsVerticalScrollIndicator={false}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        refreshing={loading && currentPage === 1}
-        onRefresh={() => {
-          setCurrentPage(1);
-          fetchBatches(1);
-        }}
       />
-      <LoadingOverlay visible={loading} />
+      {/* No network loading overlay needed for mock data */}
     </SafeAreaView>
   );
 };
@@ -299,7 +179,27 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     gap: 12,
-    // marginBottom: theme.spacing.md,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: theme.spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: theme.colors.background,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary + '15',
+  },
+  chipText: {
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  chipTextActive: {
+    color: theme.colors.primary,
   },
   filterItem: {
     flex: 1,
@@ -401,4 +301,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BatchListScreen; 
+export default RecordListScreen; 

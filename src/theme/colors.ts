@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const COLORS = {
   primary: '#2E7D32',
   secondary: '#A5D6A7',
@@ -6,7 +8,9 @@ export const COLORS = {
   text: '#333333',
   textLight: '#666666',
   error: '#D32F2F',
+  errorLight: '#FFCDD2',
   success: '#388E3C',
+  successLight: '#C8E6C9',
   warning: '#FFA000',
   info: '#1976D2',
   border: '#E0E0E0',
@@ -39,6 +43,10 @@ export const theme = {
       regular: 'Roboto-Regular',
       medium: 'Roboto-Medium',
       bold: 'Roboto-Bold',
+      mono: Platform.select({
+        ios: 'Menlo',
+        android: 'monospace',
+      }),
     },
     fontSize: {
       xs: 12,

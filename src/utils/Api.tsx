@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Platform } from 'react-native';
+import { deriveDashboardStats, deriveRecentBatches, mockUsers } from './mockData';
 import { getToken, saveToken } from "./TokenManager";
 
 // Types
@@ -72,38 +73,23 @@ api.interceptors.response.use(
 export const dashboardApi = {
   // Lấy thông tin user profile
   getUserProfile: async (): Promise<UserProfile> => {
-    try {
-      const response = await api.get('/auth/profile');
-      console.log('Profile response:', response.data);
-      return response.data.data;
-    } catch (error: any) {
-      console.error('Error getting user profile:', error.response?.data || error.message);
-      throw error;
-    }
+    // Use mock user for local UI demo
+    return {
+      full_name: mockUsers[0].name,
+      role: 'farmer',
+      farm_name: mockUsers[0].org_name,
+      profile_image: '',
+    };
   },
 
   // Lấy thống kê tổng quan
   getDashboardStats: async (): Promise<DashboardStats> => {
-    try {
-      const response = await api.get('/dashboard/stats');
-      console.log('Stats response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error getting dashboard stats:', error.response?.data || error.message);
-      throw error;
-    }
+    return deriveDashboardStats();
   },
 
   // Lấy danh sách lô hàng gần đây
   getRecentBatches: async (): Promise<Batch[]> => {
-    try {
-      const response = await api.get('/dashboard/batches');
-      console.log('Batches response:', response.data);
-      return response.data.data || [];
-    } catch (error: any) {
-      console.error('Error getting recent batches:', error.response?.data || error.message);
-      throw error;
-    }
+    return deriveRecentBatches() as unknown as Batch[];
   },
 
   // Lấy số thông báo chưa đọc

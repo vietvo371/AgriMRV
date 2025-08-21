@@ -20,6 +20,7 @@ interface AuthContextData {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
+  userRole: 'farmer' | 'bank' | 'coop' | null;
   signIn: (credentials: { email: string; password: string }) => Promise<void>;
   signUp: (userData: {
     name: string;
@@ -169,12 +170,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const userRole = user?.role as 'farmer' | 'bank' | 'coop' | null;
+
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated: !!user,
         user,
         loading,
+        userRole,
         signIn,
         signUp,
         signOut,
