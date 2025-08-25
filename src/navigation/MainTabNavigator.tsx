@@ -39,6 +39,7 @@ import AiVerifyScreen from '../screens/AiVerifyScreen';
 import AiAnalysisDetailScreen from '../screens/AiAnalysisDetailScreen';
 import BanksScreen from '../screens/BanksScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import ShareProfileScreen from '../screens/ShareProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -56,7 +57,7 @@ const MainTabs = () => {
       height: 60,
       paddingBottom: 14,
       paddingTop: 8,
-      marginBottom: 20,
+      marginBottom: 25,
       elevation: 8,
       shadowColor: theme.colors.primary,
       shadowOffset: { width: 0, height: -4 },
@@ -220,6 +221,7 @@ const MainNavigator = () => {
         <Stack.Screen name="RecordList" component={RecordListScreen as any} />
         <Stack.Screen name="Finance" component={FinanceScreen as any} />
         <Stack.Screen name="Profile" component={ProfileScreen as any} />
+        <Stack.Screen name="ShareProfile" component={ShareProfileScreen as any} />
       </Stack.Group>
     </Stack.Navigator>
   );

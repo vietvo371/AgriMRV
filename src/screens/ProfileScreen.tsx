@@ -145,7 +145,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 </View>
                 <TouchableOpacity 
                   style={styles.shareButton}
-                  onPress={() => setShareModalVisible(true)}
+                  onPress={() => navigation.navigate('ShareProfile')}
                 >
                   <Icon name="share-variant" size={20} color={theme.colors.primary} />
                 </TouchableOpacity>
@@ -190,9 +190,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           {/* Enhanced Tabs */}
           <View style={styles.tabsContainer}>
             {[
-              { key: 'personal', label: 'Personal', icon: 'account' },
-              { key: 'farm', label: 'Farm', icon: 'leaf' },
-              { key: 'achievements', label: 'Achievements', icon: 'trophy' },
+              { key: 'personal', label: 'Personal' },
+              { key: 'farm', label: 'Farm' },
+              { key: 'achievements', label: 'Achievements' },
             ].map((tab: any) => (
               <TouchableOpacity
                 key={tab.key}
@@ -203,11 +203,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 onPress={() => setActiveTab(tab.key)}
                 activeOpacity={0.8}
               >
-                <Icon 
-                  name={tab.icon} 
-                  size={18} 
-                  color={activeTab === tab.key ? theme.colors.primary : theme.colors.textLight} 
-                />
                 <Text
                   style={[
                     styles.tabText,
@@ -510,56 +505,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </View>
         </ScrollView>
 
-        {/* Share Modal */}
-        <ModalCustom
-          isModalVisible={shareModalVisible}
-          setIsModalVisible={setShareModalVisible}
-          title="Share Profile with Bank"
-          isAction={false}
-        >
-          <Text style={styles.modalDescription}>
-            Share your verified credit profile with partner banks for loan applications
-          </Text>
-          
-          <View style={styles.shareCodeSection}>
-            <Text style={styles.shareCodeLabel}>Share Code</Text>
-            <View style={styles.shareCodeContainer}>
-              <View style={styles.shareCodeInput}>
-                <Text style={styles.shareCodeText}>{shareCode}</Text>
-              </View>
-              <TouchableOpacity onPress={copyShareCode} style={styles.copyButton}>
-                <Icon name="content-copy" size={18} color={theme.colors.text} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.shareCodeNote}>
-              This code expires in 24 hours and allows banks to view your credit profile
-            </Text>
-          </View>
-
-          <View style={styles.bankInfoSection}>
-            <Text style={styles.bankInfoTitle}>What banks will see:</Text>
-            <View style={styles.bankInfoList}>
-              <Text style={styles.bankInfoItem}>• Credit score and rating</Text>
-              <Text style={styles.bankInfoItem}>• Verified crop data and yields</Text>
-              <Text style={styles.bankInfoItem}>• Loan repayment history</Text>
-              <Text style={styles.bankInfoItem}>• Cooperative membership status</Text>
-            </View>
-          </View>
-
-          <View style={styles.modalActions}>
-            <ButtonCustom 
-              title="Cancel" 
-              variant="secondary" 
-              onPress={() => setShareModalVisible(false)} 
-              style={styles.modalButton} 
-            />
-            <ButtonCustom 
-              title="Done" 
-              onPress={() => setShareModalVisible(false)} 
-              style={styles.modalButton} 
-            />
-          </View>
-        </ModalCustom>
+        {/* Share Screen replaces modal */}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -702,8 +648,8 @@ const styles = StyleSheet.create({
   // Tabs Styles
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.background,
-    borderRadius: 16,
+    backgroundColor: theme.colors.border,
+    borderRadius: 12,
     padding: 4,
     marginBottom: theme.spacing.lg,
   },
@@ -723,7 +669,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    elevation: 1,
   },
   tabText: {
     color: theme.colors.textLight,

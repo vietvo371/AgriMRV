@@ -100,7 +100,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
           {/* MRV Process Overview */}
           <View style={styles.processSection}>
-            <Text style={styles.sectionTitle}>MRV Process Status</Text>
+            <Text style={styles.sectionTitle}>MRV Process Overview</Text>
             <View style={styles.processGrid}>
               <View style={styles.processCard}>
                 <View style={styles.processIcon}>
@@ -108,9 +108,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                 </View>
                 <Text style={styles.processTitle}>Stage 1</Text>
                 <Text style={styles.processSubtitle}>Registration & MRV Declaration</Text>
-                <View style={styles.processStatus}>
-                  <Badge text="Completed" variant="success" size="small" />
-                </View>
               </View>
 
               <View style={styles.processCard}>
@@ -119,9 +116,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                 </View>
                 <Text style={styles.processTitle}>Stage 2</Text>
                 <Text style={styles.processSubtitle}>Evidence Collection</Text>
-                <View style={styles.processStatus}>
-                  <Badge text="Completed" variant="success" size="small" />
-                </View>
               </View>
 
               <View style={styles.processCard}>
@@ -130,9 +124,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                 </View>
                 <Text style={styles.processTitle}>Stage 3</Text>
                 <Text style={styles.processSubtitle}>Verification & Scoring</Text>
-                <View style={styles.processStatus}>
-                  <Badge text="Completed" variant="success" size="small" />
-                </View>
               </View>
 
               <View style={styles.processCard}>
@@ -141,9 +132,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                 </View>
                 <Text style={styles.processTitle}>Stage 4</Text>
                 <Text style={styles.processSubtitle}>Carbon Credits & Trading</Text>
-                <View style={styles.processStatus}>
-                  <Badge text="In Progress" variant="warning" size="small" />
-                </View>
               </View>
             </View>
           </View>

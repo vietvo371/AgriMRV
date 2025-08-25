@@ -584,13 +584,13 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'transparent',
   },
   gradient: {
     flex: 1,
   },
   header: {
-    // backgroundColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   stepIndicator: {
     flexDirection: 'row',

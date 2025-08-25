@@ -26,6 +26,7 @@ export type RootStackParamList = {
   BlockchainAnchor: { profileId: string; score: number };
   TrainingQuiz: undefined;
   Banks: undefined;
+  ShareProfile: undefined;
   
   // Bank/Coop Flow
   BankViewer: { txHash?: string; farmerId?: string };

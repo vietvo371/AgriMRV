@@ -282,23 +282,21 @@ const CreditDashboardScreen: React.FC<Props> = ({
   const getImpactColor = (impact: 'high' | 'medium' | 'low') => {
     switch (impact) {
       case 'high':
-        return theme.colors.error;
+        return theme.colors?.error || '#ff0000';
       case 'medium':
-        return theme.colors.warning;
+        return theme.colors?.warning || '#ffa500';
       default:
-        return theme.colors.success;
+        return theme.colors?.success || '#00ff00';
     }
   };
 
   const handleShare = () => {
-    navigation.navigate('CreditProfile', {
-      profileId: 'default',
-    });
+    navigation.navigate('ShareProfile');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient colors={[theme.colors.secondary + '20', theme.colors.white]} style={{ flex: 1 }}>
+      <LinearGradient  colors={[theme.colors.primary + '08', theme.colors.white]}  style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
@@ -318,22 +316,22 @@ const CreditDashboardScreen: React.FC<Props> = ({
                       rotation={0}>
                       <View style={styles.scoreCenter}>
                         <Text style={styles.scoreGrade}>
-                          {getCreditGrade(scores.creditScore)}
+                          {getCreditGrade(scores.creditScore || 0)}
                         </Text>
                         <Text style={styles.scoreValue}>
-                          {Math.round(scores.creditScore)}
+                          {Math.round(scores.creditScore || 0)}
                         </Text>
                       </View>
                     </CircularProgress>
                   )}
                   <View style={styles.scoreInfo}>
                     <Text style={styles.scoreTitle}>Credit Score</Text>
-                    <Text style={styles.scoreSubtitle}>
-                      Eligible for loan up to ${getEligibleAmount(scores.creditScore)}
-                    </Text>
+                                          <Text style={styles.scoreSubtitle}>
+                        Eligible for loan up to ${getEligibleAmount(scores.creditScore || 0)}
+                      </Text>
                     <View style={styles.deltaRow}>
-                      <Icon name={monthlyChange >= 0 ? 'trending-up' : 'trending-down'} size={16} color={monthlyChange >= 0 ? theme.colors.success : theme.colors.error} />
-                      <Text style={[styles.deltaText, { color: monthlyChange >= 0 ? theme.colors.success : theme.colors.error }]}> {monthlyChange > 0 ? '+' : ''}{monthlyChange} this month</Text>
+                      <Icon name={(monthlyChange || 0) >= 0 ? 'trending-up' : 'trending-down'} size={16} color={(monthlyChange || 0) >= 0 ? (theme.colors?.success || '#00ff00') : (theme.colors?.error || '#ff0000')} />
+                      <Text style={[styles.deltaText, { color: (monthlyChange || 0) >= 0 ? (theme.colors?.success || '#00ff00') : (theme.colors?.error || '#ff0000') }]}> {(monthlyChange || 0) > 0 ? '+' : ''}{monthlyChange || 0} this month</Text>
                     </View>
                   </View>
                 </View>
@@ -341,21 +339,21 @@ const CreditDashboardScreen: React.FC<Props> = ({
                                   <View style={styles.indicators}>
                     <View style={styles.indicator}>
                       <LinearGradient
-                        colors={[theme.colors.success + '20', theme.colors.success + '10']}
+                        colors={[(theme.colors?.success || '#00ff00') + '20', (theme.colors?.success || '#00ff00') + '10']}
                         style={styles.indicatorIcon}>
-                        <Icon name="leaf" size={24} color={theme.colors.success} />
+                        <Icon name="leaf" size={24} color={theme.colors?.success || '#00ff00'} />
                       </LinearGradient>
                       <Text style={styles.indicatorLabel}>Carbon Performance</Text>
-                      <Text style={styles.indicatorValue}>{scores.carbonPerformance}/100</Text>
+                      <Text style={styles.indicatorValue}>{scores.carbonPerformance || 0}/100</Text>
                     </View>
                     <View style={styles.indicator}>
                       <LinearGradient
-                        colors={[theme.colors.warning + '20', theme.colors.warning + '10']}
+                        colors={[(theme.colors?.warning || '#ffa500') + '20', (theme.colors?.warning || '#ffa500') + '10']}
                         style={styles.indicatorIcon}>
-                        <Icon name="shield-check" size={24} color={theme.colors.warning} />
+                        <Icon name="shield-check" size={24} color={theme.colors?.warning || '#ffa500'} />
                       </LinearGradient>
                       <Text style={styles.indicatorLabel}>MRV Reliability</Text>
-                      <Text style={styles.indicatorValue}>{scores.mrvReliability}/100</Text>
+                      <Text style={styles.indicatorValue}>{scores.mrvReliability || 0}/100</Text>
                     </View>
                   
                   </View>
@@ -376,24 +374,24 @@ const CreditDashboardScreen: React.FC<Props> = ({
                 <Text style={styles.chartSubtitle}>Your credit score progression over time</Text>
                 <LineChart
                   data={historicalScores}
-                  width={width - 40}
+                  width={(width || 350) - 40}
                   height={190}
                   chartConfig={{
                     backgroundColor: '#ffffff',
                     backgroundGradientFrom: '#ffffff',
                     backgroundGradientTo: '#ffffff',
                     decimalPlaces: 0,
-                    color: () => theme.colors.primary,
-                    labelColor: () => theme.colors.textLight,
-                    fillShadowGradient: theme.colors.primary,
+                    color: () => theme.colors?.primary || '#007AFF',
+                    labelColor: () => theme.colors?.textLight || '#666666',
+                    fillShadowGradient: theme.colors?.primary || '#007AFF',
                     fillShadowGradientOpacity: 0.2,
                     propsForDots: {
                       r: '4',
                       strokeWidth: '2',
-                      stroke: theme.colors.primary,
+                      stroke: theme.colors?.primary || '#007AFF',
                     },
                     propsForBackgroundLines: {
-                      stroke: theme.colors.border,
+                      stroke: theme.colors?.border || '#E5E5E5',
                     },
                   }}
                   withOuterLines={false}
@@ -444,16 +442,16 @@ const CreditDashboardScreen: React.FC<Props> = ({
                       <View style={styles.breakdownHeader}>
                         <View style={styles.breakdownLeft}>
                           <LinearGradient
-                            colors={[item.color + '20', item.color + '10']}
+                            colors={[(item.color || theme.colors.primary) + '20', (item.color || theme.colors.primary) + '10']}
                             style={styles.breakdownIcon}>
-                            <Icon name={item.icon} size={24} color={item.color} />
+                            <Icon name={item.icon || 'help-circle'} size={24} color={item.color || theme.colors.primary} />
                           </LinearGradient>
                           <Text style={styles.breakdownCategory}>
-                            {item.category}
+                            {item.category || 'Unknown Category'}
                           </Text>
                         </View>
                         <Text style={styles.breakdownScore}>
-                          {item.score}/{item.maxScore}
+                          {item.score || 0}/{item.maxScore || 100}
                         </Text>
                       </View>
                       <View style={styles.progressBar}>
@@ -461,29 +459,29 @@ const CreditDashboardScreen: React.FC<Props> = ({
                           style={[
                             styles.progressFill,
                             {
-                              backgroundColor: item.color,
+                              backgroundColor: item.color || theme.colors.primary,
                               width: `${(item.score / item.maxScore) * 100}%`,
                             },
                           ]}
                         />
                       </View>
                       <View style={styles.factorMetaRow}>
-                        <Text style={[styles.impactLabel, { color: getImpactColor(item.impact) }]}>{item.impact.toUpperCase()} IMPACT</Text>
+                        <Text style={[styles.impactLabel, { color: getImpactColor(item.impact || 'low') }]}>{(item.impact || 'low').toUpperCase()} IMPACT</Text>
                         <View style={styles.trendRow}>
-                          <Icon name={item.trend === 'up' ? 'trending-up' : item.trend === 'down' ? 'trending-down' : 'minus'} size={14} color={item.trend === 'up' ? theme.colors.success : item.trend === 'down' ? theme.colors.error : theme.colors.textLight} />
-                          <Text style={styles.trendText}>{item.trend}</Text>
+                          <Icon name={(item.trend || 'stable') === 'up' ? 'trending-up' : (item.trend || 'stable') === 'down' ? 'trending-down' : 'minus'} size={14} color={(item.trend || 'stable') === 'up' ? theme.colors.success : (item.trend || 'stable') === 'down' ? theme.colors.error : theme.colors.textLight} />
+                          <Text style={styles.trendText}>{item.trend || 'stable'}</Text>
                         </View>
                       </View>
-                      <Text style={styles.factorDesc}>{item.description}</Text>
+                      <Text style={styles.factorDesc}>{item.description || 'No description available'}</Text>
                       {item.carbonReduction !== undefined && (
                         <View style={styles.carbonInfo}>
                           <Text style={styles.carbonLabel}>
                             Carbon Impact: <Text style={[styles.carbonValue, { color: item.color }]}>
-                              {item.carbonReduction} {index < 2 ? 'tCO₂e' : index === 2 ? 'photos' : index === 3 ? 'score' : 'tCO₂e'}
+                              {item.carbonReduction || 0} {index < 2 ? 'tCO₂e' : index === 2 ? 'photos' : index === 3 ? 'score' : 'tCO₂e'}
                             </Text>
                           </Text>
-                          {item.area && index < 2 && (
-                            <Text style={styles.areaInfo}>Area: {item.area} ha</Text>
+                          {item.area !== undefined && index < 2 && (
+                            <Text style={styles.areaInfo}>Area: {item.area || 0} ha</Text>
                           )}
                         </View>
                       )}

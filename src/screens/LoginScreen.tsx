@@ -128,7 +128,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                   resizeMode="contain"
                 />
                 <View style={styles.titleContainer}>
-                  <Text style={styles.title}>Welcome to AgriCred</Text>
+                  <Text style={styles.title}>Welcome to AgriMRV</Text>
                   <Text style={styles.subtitle}>
                     Enter your phone number or email to continue
                   </Text>

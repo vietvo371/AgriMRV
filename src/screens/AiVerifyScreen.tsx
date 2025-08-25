@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Image, TouchableOpacity, Platform, TextInput } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  SafeAreaView, 
+  Image, 
+  TouchableOpacity, 
+  Platform, 
+  TextInput,
+  Dimensions 
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme/colors';
 import Badge from '../component/Badge';
@@ -7,6 +18,10 @@ import Card from '../component/Card';
 import LoadingOverlay from '../component/LoadingOverlay';
 import { mockAiResults, mockFarmProfiles, mockImages, mockUsers } from '../utils/mockData';
 import LinearGradient from 'react-native-linear-gradient';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+
+const { width } = Dimensions.get('window');
+
 interface AIAnalysis {
   id: string;
   cropType: string;
@@ -21,9 +36,12 @@ interface AIAnalysis {
   creditImpact: number;
 }
 
-const ProgressBar: React.FC<{ value: number }> = ({ value }) => (
+const ProgressBar: React.FC<{ value: number; color?: string }> = ({ value, color = theme.colors.primary }) => (
   <View style={styles.progressTrack}>
-    <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, value))}%` }]} />
+    <LinearGradient
+      colors={[color, color + '80']}
+      style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, value))}%` }]}
+    />
   </View>
 );
 
@@ -39,6 +57,36 @@ const statusToVariant = (status: AIAnalysis['status']) => {
       return 'error' as const;
     default:
       return 'default' as const;
+  }
+};
+
+const getStatusColor = (status: AIAnalysis['status']) => {
+  switch (status) {
+    case 'verified':
+      return theme.colors.success;
+    case 'processing':
+      return theme.colors.info;
+    case 'needs_review':
+      return theme.colors.warning;
+    case 'rejected':
+      return theme.colors.error;
+    default:
+      return theme.colors.textLight;
+  }
+};
+
+const getStatusIcon = (status: AIAnalysis['status']) => {
+  switch (status) {
+    case 'verified':
+      return 'check-circle';
+    case 'processing':
+      return 'clock-outline';
+    case 'needs_review':
+      return 'alert-circle';
+    case 'rejected':
+      return 'close-circle';
+    default:
+      return 'help-circle';
   }
 };
 
@@ -81,16 +129,13 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     });
   }, []);
 
-  const selected = selectedId ? analyses.find((a) => a.id === selectedId) || null : null;
-
   if (loading) return <LoadingOverlay visible={true} message="Loading AI verification..." />;
 
-  // On card click, go to detail screen
-
-  // List view
   const verified = analyses.filter(a => a.status === 'verified').length;
   const needsReview = analyses.filter(a => a.status === 'needs_review').length;
+  const processing = analyses.filter(a => a.status === 'processing').length;
   const avgConfidence = Math.round(analyses.reduce((s, a) => s + a.confidence, 0) / Math.max(1, analyses.length));
+  
   const filtered = analyses.filter(a => {
     const matchStatus = statusFilter === 'all' ? true : a.status === statusFilter;
     const matchQuery = query ? (
@@ -103,87 +148,247 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={[theme.colors.secondary + '30', theme.colors.white]}
-        style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.headerRowBetween}>
-            <View>
-              <Text style={styles.title}>AI Verification</Text>
-              <Text style={styles.subtitle}>AI analysis results for your crop submissions</Text>
-            </View>
-          </View>
-
-          {/* Stats */}
-          <View style={styles.grid3}>
-            <Card style={styles.centerCard}>
-              <Text style={[styles.statValue, { color: theme.colors.success }]}>{verified}</Text>
-              <Text style={styles.mutedText}>Verified</Text>
-            </Card>
-            <Card style={styles.centerCard}>
-              <Text style={[styles.statValue, { color: theme.colors.warning }]}>{needsReview}</Text>
-              <Text style={styles.mutedText}>Needs Review</Text>
-            </Card>
-            <Card style={styles.centerCard}>
-              <Text style={[styles.statValue, { color: theme.colors.primary }]}>{avgConfidence}%</Text>
-              <Text style={styles.mutedText}>Avg Confidence</Text>
-            </Card>
-          </View>
-
-          {/* Search + Filters */}
-          <View style={styles.searchContainer}>
-            <Icon name="magnify" size={20} color={theme.colors.textLight} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search crop or location..."
-              placeholderTextColor={theme.colors.textLight}
-              value={query}
-              onChangeText={setQuery}
-            />
-          </View>
-          <View style={styles.filterRow}>
-            {(['all', 'verified', 'needs_review'] as const).map(key => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.chip, statusFilter === key && styles.chipActive]}
-                onPress={() => setStatusFilter(key)}
-              >
-                <Text style={[styles.chipText, statusFilter === key && styles.chipTextActive]}>{key.replace('_', ' ').toUpperCase()}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* List */}
-          <View style={{ gap: 12 }}>
-            {filtered.map(a => (
-              <Card key={a.id} style={styles.listCard}>
-                <TouchableOpacity style={styles.listRow} onPress={() => navigation.navigate('AiAnalysisDetail', { analysisId: a.id })}>
-                  {!!a.imageUrl && <Image source={{ uri: a.imageUrl }} style={styles.thumb} />}
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <View style={styles.rowBetween}>
-                      <Text style={styles.bold}>{a.cropType}</Text>
-                      <Badge text={a.status.replace('_', ' ')} variant={statusToVariant(a.status)} size="small" />
-                    </View>
-                    <View style={styles.rowStart}>
-                      <Icon name="map-marker" size={14} color={theme.colors.textLight} />
-                      <Text style={[styles.body, { color: theme.colors.textLight, marginLeft: 4 }]}>{a.location}</Text>
-                    </View>
-                    <View style={styles.rowBetween}>
-                      <View style={{ flex: 1, marginRight: 12 }}>
-                        <View style={styles.rowBetween}>
-                          <Text style={styles.body}>Confidence</Text>
-                          <Text style={styles.bold}>{a.confidence}%</Text>
-                        </View>
-                        <View style={styles.progressTrackThin}><View style={[styles.progressFill, { width: `${a.confidence}%`, backgroundColor: a.confidence >= 85 ? theme.colors.success : a.confidence >= 70 ? theme.colors.warning : theme.colors.error }]} /></View>
-                      </View>
-                      <Text style={styles.body}>Impact: <Text style={[styles.bold, { color: theme.colors.primary }]}>+{a.creditImpact} pts</Text></Text>
-                    </View>
-                    <Text style={[styles.mutedText, { marginTop: 2 }]}>Analyzed {new Date(a.analysisDate).toLocaleDateString()}</Text>
+        colors={[theme.colors.primary + '08', theme.colors.white]}
+        style={styles.gradient}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Enhanced Stats Overview */}
+          <Animated.View entering={FadeInDown.duration(500).springify()}>
+            <Card style={[styles.overviewCard, styles.elevation]}>
+              <View style={styles.overviewHeader}>
+                <View style={styles.overviewTitleSection}>
+                  <View style={styles.overviewIconContainer}>
+                    <LinearGradient
+                      colors={[theme.colors.primary + '20', theme.colors.primary + '10']}
+                      style={styles.overviewIcon}
+                    >
+                      <Icon name="robot" size={28} color={theme.colors.primary} />
+                    </LinearGradient>
                   </View>
-                  <Icon name="chevron-right" size={20} color={theme.colors.textLight} />
+                  <View style={styles.overviewInfo}>
+                    <Text style={styles.overviewTitle}>Analysis Overview</Text>
+                    <Text style={styles.overviewSubtitle}>AI-powered crop verification results</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.refreshButton}>
+                  <Icon name="refresh" size={20} color={theme.colors.primary} />
                 </TouchableOpacity>
-              </Card>
-            ))}
-          </View>
+              </View>
+
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <LinearGradient
+                    colors={[theme.colors.success + '15', theme.colors.success + '05']}
+                    style={styles.statIconBg}
+                  >
+                    <Icon name="check-circle" size={24} color={theme.colors.success} />
+                  </LinearGradient>
+                  <Text style={styles.statValue}>{verified}</Text>
+                  <Text style={styles.statLabel}>Verified</Text>
+                </View>
+
+                <View style={styles.statCard}>
+                  <LinearGradient
+                    colors={[theme.colors.warning + '15', theme.colors.warning + '05']}
+                    style={styles.statIconBg}
+                  >
+                    <Icon name="alert-circle" size={24} color={theme.colors.warning} />
+                  </LinearGradient>
+                  <Text style={styles.statValue}>{needsReview}</Text>
+                  <Text style={styles.statLabel}>Needs Review</Text>
+                </View>
+
+                <View style={styles.statCard}>
+                  <LinearGradient
+                    colors={[theme.colors.info + '15', theme.colors.info + '05']}
+                    style={styles.statIconBg}
+                  >
+                    <Icon name="clock-outline" size={24} color={theme.colors.info} />
+                  </LinearGradient>
+                  <Text style={styles.statValue}>{processing}</Text>
+                  <Text style={styles.statLabel}>Processing</Text>
+                </View>
+              </View>
+
+              <View style={styles.confidenceSection}>
+                <View style={styles.confidenceHeader}>
+                  <Text style={styles.confidenceLabel}>Average Confidence</Text>
+                  <Text style={styles.confidenceValue}>{avgConfidence}%</Text>
+                </View>
+                <ProgressBar 
+                  value={avgConfidence} 
+                  color={avgConfidence >= 85 ? theme.colors.success : avgConfidence >= 70 ? theme.colors.warning : theme.colors.error}
+                />
+              </View>
+            </Card>
+          </Animated.View>
+
+          {/* Enhanced Search and Filters */}
+          <Animated.View entering={FadeInDown.duration(600).springify()}>
+            <View style={styles.searchSection}>
+              <View style={styles.searchContainer}>
+                <Icon name="magnify" size={20} color={theme.colors.textLight} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search crop type or location..."
+                  placeholderTextColor={theme.colors.textLight}
+                  value={query}
+                  onChangeText={setQuery}
+                />
+                {query.length > 0 && (
+                  <TouchableOpacity onPress={() => setQuery('')}>
+                    <Icon name="close-circle" size={20} color={theme.colors.textLight} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Enhanced Analysis List */}
+          <Animated.View entering={FadeInRight.duration(300).springify()}>
+            <View style={styles.listSection}>
+              <View style={styles.listHeader}>
+                <Text style={styles.listTitle}>Analysis Results</Text>
+                <Text style={styles.listSubtitle}>{filtered.length} items found</Text>
+              </View>
+
+              <View style={styles.analysisList}>
+                {filtered.map((analysis, index) => (
+                  <Animated.View 
+                    key={analysis.id}
+                    entering={FadeInDown.duration(300).delay(index * 100).springify()}
+                  >
+                    <Card style={[styles.analysisCard, styles.elevation]}>
+                      <TouchableOpacity 
+                        style={styles.analysisContent}
+                        onPress={() => navigation.navigate('AiAnalysisDetail', { analysisId: analysis.id })}
+                        activeOpacity={0.7}
+                      >
+                        {/* Header Row */}
+                        <View style={styles.analysisHeader}>
+                          <View style={styles.analysisLeft}>
+                            <View style={styles.analysisImageContainer}>
+                              {analysis.imageUrl ? (
+                                <Image source={{ uri: analysis.imageUrl }} style={styles.analysisImage} />
+                              ) : (
+                                <View style={styles.placeholderImage}>
+                                  <Icon name="image-outline" size={20} color={theme.colors.textLight} />
+                                </View>
+                              )}
+                              <View style={[
+                                styles.statusIndicator,
+                                { backgroundColor: getStatusColor(analysis.status) }
+                              ]}>
+                                <Icon 
+                                  name={getStatusIcon(analysis.status)} 
+                                  size={10} 
+                                  color={theme.colors.white} 
+                                />
+                              </View>
+                            </View>
+
+                            <View style={styles.analysisBasicInfo}>
+                              <Text style={styles.cropType} numberOfLines={1} ellipsizeMode="tail">
+                                {analysis.cropType}
+                              </Text>
+                              <View style={styles.locationRow}>
+                                <Icon name="map-marker" size={12} color={theme.colors.textLight} />
+                                <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+                                  {analysis.location}
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+
+                          <View style={styles.analysisRight}>
+                            <View style={[
+                              styles.statusBadge,
+                              { backgroundColor: getStatusColor(analysis.status) + '15' }
+                            ]}>
+                              <Text style={[
+                                styles.statusText,
+                                { color: getStatusColor(analysis.status) }
+                              ]}>
+                                {analysis.status.replace('_', ' ').toUpperCase()}
+                              </Text>
+                            </View>
+                            <Icon name="chevron-right" size={16} color={theme.colors.textLight} />
+                          </View>
+                        </View>
+
+                        {/* Confidence Row */}
+                        <View style={styles.confidenceRow}>
+                          <View style={styles.confidenceSection}>
+                            <Text style={styles.confidenceLabel}>Confidence</Text>
+                            <View style={styles.confidenceDisplay}>
+                              <Text style={styles.confidencePercent}>{analysis.confidence}%</Text>
+                              <View style={styles.confidenceBarContainer}>
+                                <ProgressBar 
+                                  value={analysis.confidence}
+                                  color={
+                                    analysis.confidence >= 85 ? theme.colors.success : 
+                                    analysis.confidence >= 70 ? theme.colors.warning : theme.colors.error
+                                  }
+                                />
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+
+                        {/* Metrics Row */}
+                        <View style={styles.metricsRow}>
+                          <View style={styles.metricItem}>
+                            <Text style={styles.metricLabel}>Health</Text>
+                            <Text style={styles.metricValue}>{analysis.findings.cropHealth}%</Text>
+                          </View>
+                          <View style={styles.metricItem}>
+                            <Text style={styles.metricLabel}>Quality</Text>
+                            <Text style={styles.metricValue}>{analysis.findings.quality}%</Text>
+                          </View>
+                          <View style={styles.metricItem}>
+                            <Text style={styles.metricLabel}>Maturity</Text>
+                            <Text style={styles.metricValue}>{analysis.findings.maturity}%</Text>
+                          </View>
+                          <View style={styles.metricItem}>
+                            <Text style={styles.metricLabel}>Auth</Text>
+                            <Text style={styles.metricValue}>{analysis.findings.authenticity}%</Text>
+                          </View>
+                        </View>
+
+                        {/* Footer Row */}
+                        <View style={styles.analysisFooter}>
+                          <View style={styles.impactInfo}>
+                            <Icon name="trending-up" size={12} color={theme.colors.primary} />
+                            <Text style={styles.impactText}>
+                              Impact: <Text style={styles.impactValue}>+{analysis.creditImpact} pts</Text>
+                            </Text>
+                          </View>
+                          <Text style={styles.analysisDate}>
+                            {new Date(analysis.analysisDate).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    </Card>
+                  </Animated.View>
+                ))}
+              </View>
+
+              {filtered.length === 0 && (
+                <Card style={styles.emptyCard}>
+                  <View style={styles.emptyContent}>
+                    <Icon name="robot-confused" size={48} color={theme.colors.textLight} />
+                    <Text style={styles.emptyTitle}>No Results Found</Text>
+                    <Text style={styles.emptyText}>
+                      {query ? 'Try adjusting your search terms' : 'No analyses match the selected filter'}
+                    </Text>
+                  </View>
+                </Card>
+              )}
+            </View>
+          </Animated.View>
         </ScrollView>
       </LinearGradient>
     </SafeAreaView>
@@ -191,53 +396,374 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollContent: { padding: theme.spacing.lg },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.spacing.lg },
-  headerRowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.lg },
-  backBtn: { paddingVertical: 4, paddingRight: 8 },
-  backText: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium },
-  title: { fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xl, color: theme.colors.text },
-  subtitle: { color: theme.colors.textLight },
-  refreshBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary + '10', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  card: { marginBottom: theme.spacing.lg },
-  cardTitle: { fontFamily: theme.typography.fontFamily.medium, marginBottom: theme.spacing.md, color: theme.colors.text },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rowStart: { flexDirection: 'row', alignItems: 'center' },
-  confidence: { fontFamily: theme.typography.fontFamily.bold, fontSize: 22 },
-  splitRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: theme.spacing.md },
-  centerCol: { alignItems: 'center' },
-  grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  metricBlock: { flexBasis: '48%' },
-  metricValue: { fontFamily: theme.typography.fontFamily.medium },
-  progressTrack: { height: 8, backgroundColor: theme.colors.border, borderRadius: 6, overflow: 'hidden', marginTop: 6 },
-  progressFill: { height: '100%', backgroundColor: theme.colors.primary },
-  tabsRow: { flexDirection: 'row', gap: 12, marginTop: theme.spacing.md },
-  tab: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12, backgroundColor: theme.colors.background, color: theme.colors.text },
-  tabActive: { backgroundColor: theme.colors.primary + '15', color: theme.colors.primary },
-  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.primary, marginTop: 6 },
-  body: { fontFamily: theme.typography.fontFamily.regular, color: theme.colors.text },
-  mutedText: { color: theme.colors.textLight, fontSize: theme.typography.fontSize.sm },
-  bold: { fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text },
-  grid3: { flexDirection: 'row', gap: 12, marginBottom: theme.spacing.lg },
-  centerCard: { alignItems: 'center', padding: theme.spacing.lg, flex: 1, backgroundColor: theme.colors.white, borderRadius: theme.borderRadius.lg },
-  statValue: { fontFamily: theme.typography.fontFamily.bold, fontSize: 22 },
-  listCard: { padding: theme.spacing.md },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  thumb: { width: 64, height: 64, borderRadius: 12, backgroundColor: theme.colors.border },
-  heroImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: theme.spacing.md, backgroundColor: theme.colors.border },
-  ctaBtn: { marginTop: theme.spacing.md, paddingVertical: 10, alignItems: 'center', borderRadius: 8, backgroundColor: theme.colors.white, borderWidth: 1, borderColor: theme.colors.warning },
-  ctaText: { color: theme.colors.warning, fontFamily: theme.typography.fontFamily.medium },
-  gradient: { flex: 1 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.white, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: theme.spacing.md, ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }, android: { elevation: 2 } }) },
-  searchInput: { flex: 1, color: theme.colors.text },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: theme.spacing.lg },
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: theme.colors.background },
-  chipActive: { backgroundColor: theme.colors.primary + '15' },
-  chipText: { color: theme.colors.text },
-  chipTextActive: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium },
-  progressTrackThin: { height: 6, backgroundColor: theme.colors.border, borderRadius: 6, overflow: 'hidden', marginTop: 4 },
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.white,
+  },
+  gradient: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl * 2,
+  },
+  elevation: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+
+  // Overview Card Styles
+  overviewCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 24,
+    padding: theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
+  },
+  overviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xl,
+  },
+  overviewTitleSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  overviewIconContainer: {},
+  overviewIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  overviewInfo: {
+    flex: 1,
+  },
+  overviewTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  overviewSubtitle: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textLight,
+  },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    alignItems: 'center',
+    minHeight: 100,
+  },
+  statIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  statValue: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+  },
+  confidenceSection: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+  },
+  confidenceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  confidenceLabel: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textLight,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  confidenceValue: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+  },
+
+  // Search Styles
+  searchSection: {
+    marginBottom: theme.spacing.lg,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  searchInput: {
+    flex: 1,
+    color: theme.colors.text,
+    fontSize: theme.typography.fontSize.md,
+    paddingVertical: theme.spacing.sm,
+  },
+
+  // List Styles
+  listSection: {},
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  listTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+  },
+  listSubtitle: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textLight,
+  },
+  analysisList: {
+    gap: theme.spacing.md,
+  },
+
+  // Enhanced Analysis Card Styles
+  analysisCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  analysisContent: {
+    padding: theme.spacing.md,
+  },
+
+  // Header Row - Simplified
+  analysisHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  analysisLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  analysisImageContainer: {
+    position: 'relative',
+    marginRight: theme.spacing.md,
+  },
+  analysisImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: theme.colors.border,
+  },
+  placeholderImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusIndicator: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.white,
+  },
+  analysisBasicInfo: {
+    flex: 1,
+    minWidth: 0, // Important for text truncation
+  },
+  cropType: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textLight,
+    flex: 1,
+  },
+  analysisRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+
+  // Confidence Row - Simplified
+  confidenceRow: {
+    marginBottom: theme.spacing.md,
+  },
+  confidenceDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  confidencePercent: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text,
+    minWidth: 40,
+  },
+  confidenceBarContainer: {
+    flex: 1,
+  },
+
+  // Metrics Row - Compact
+  metricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  metricItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  metricLabel: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+    marginBottom: 2,
+  },
+  metricValue: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text,
+  },
+
+  // Footer Row - Simplified
+  analysisFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  impactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  impactText: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+  },
+  impactValue: {
+    fontFamily: theme.typography.fontFamily.medium,
+    color: theme.colors.primary,
+  },
+  analysisDate: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+  },
+
+  // Progress Bar Styles
+  progressTrack: {
+    height: 6,
+    backgroundColor: theme.colors.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+
+  // Empty State Styles
+  emptyCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 20,
+    padding: theme.spacing.xl,
+    alignItems: 'center',
+  },
+  emptyContent: {
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  emptyTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+  },
+  emptyText: {
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+  },
 });
 
 export default AiVerifyScreen;
