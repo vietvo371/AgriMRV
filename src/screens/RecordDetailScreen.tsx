@@ -26,64 +26,53 @@ import LinearGradient from 'react-native-linear-gradient';
 
 type RecordDetailScreenProps = NativeStackScreenProps<RootStackParamList, 'RecordDetail'>;
 
-interface RecordDetailsResponse {
+interface PlotDetailsResponse {
   data: {
     id: string;
-    product_name: string;
-    category: string;
-    weight: number;
-    area_ha?: number;
-    expected_yield?: number;
-    season?: string;
-    avg_price?: number;
-    variety: string;
-    planting_date: string;
-    harvest_date: string;
-    cultivation_method: string;
-    status: 'active' | 'completed' | 'cancelled';
-    location: {
-      latitude: number;
-      longitude: number;
-      address: string;
-    };
-    images: {
-      farm: string | null;
-      product: string | null;
-      farmer?: string | null;
-    };
-    traceability: {
-      batch_code: string;
-      packaging_date: string;
-      best_before: string;
-    };
-    stats: {
-      total_scans: number;
-      unique_customers: number;
-      average_rating: number;
+    plot_name: string;
+    location: string;
+    status: 'verified' | 'pending' | 'processing';
+    mrvData: {
+      plotBoundaries: {
+        coordinates: Array<{lat: number, lng: number}>;
+        verified: boolean;
+        area: number;
+      };
+      ricePractices: {
+        area: number;
+        awdCycle: string;
+        strawManagement: string;
+        sowingDate: string;
+      };
+      agroforestrySystem: {
+        area: number;
+        treeDensity: number;
+        species: string[];
+        intercropping: string[];
+      };
+      evidencePhotos: Array<{
+        id: number;
+        type: string;
+        url: string;
+        uploadDate: string;
+      }>;
+      mrvScores: {
+        carbonPerformance: number;
+        mrvReliability: number;
+        grade: string;
+      };
+      blockchainAnchor: {
+        hash: string;
+        timestamp: string;
+        reportUrl: string;
+      };
     };
     farmer: {
       name: string;
       phone: string;
       email: string;
+      cooperative: string;
     };
-    certification: {
-      number: string;
-      validUntil: string;
-    };
-    sustainability: {
-      water_usage: string;
-      carbon_footprint: string;
-      pesticide_usage: string;
-    };
-    reviews: Array<{
-      id: string;
-      reviewer: {
-        name: string;
-      };
-      rating: number;
-      comment: string;
-      date: string;
-    }>;
   };
   message: string;
 }
@@ -95,29 +84,65 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const { recordId } = route.params;
-  const [batch, setBatch] = useState<RecordDetailsResponse['data'] | null>(null);
+  const [plot, setPlot] = useState<PlotDetailsResponse['data'] | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const convertDateToISOString = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
   useEffect(() => {
     setLoading(true);
-    const data = deriveRecordDetail(recordId);
-    setBatch(data as any);
+    // Mock data for farming plot based on backend structure
+    const mockPlotData: PlotDetailsResponse['data'] = {
+      id: recordId,
+      plot_name: recordId === 'main-plot-1' ? 'Main Plot - An Giang' : 'Secondary Plot - Dong Thap',
+      location: recordId === 'main-plot-1' ? 'An Giang Province' : 'Dong Thap Province',
+      status: recordId === 'main-plot-1' ? 'verified' : 'pending',
+      mrvData: {
+        plotBoundaries: {
+          coordinates: [{lat: 10.8231, lng: 106.6297}],
+          verified: recordId === 'main-plot-1',
+          area: recordId === 'main-plot-1' ? 2.5 : 2.0
+        },
+        ricePractices: {
+          area: recordId === 'main-plot-1' ? 1.8 : 2.0,
+          awdCycle: "7 days wet, 3 days dry",
+          strawManagement: "Incorporated into soil",
+          sowingDate: "2024-01-15"
+        },
+        agroforestrySystem: {
+          area: recordId === 'main-plot-1' ? 0.7 : 0.0,
+          treeDensity: 150,
+          species: ["Coconut", "Mango"],
+          intercropping: ["Vegetables", "Herbs"]
+        },
+        evidencePhotos: [
+          {id: 1, type: "rice_field", url: "mock_image_1.jpg", uploadDate: "2024-02-01"},
+          {id: 2, type: "tree_coverage", url: "mock_image_2.jpg", uploadDate: "2024-02-01"}
+        ],
+        mrvScores: {
+          carbonPerformance: 71,
+          mrvReliability: 75,
+          grade: "B"
+        },
+        blockchainAnchor: {
+          hash: "0x1a2b3c4d5e6f...",
+          timestamp: "2024-02-01T10:30:00Z",
+          reportUrl: "https://agrirv.com/report/abc123"
+        }
+      },
+      farmer: {
+        name: 'Nguyen Van A',
+        phone: '+84 123 456 789',
+        email: 'nguyenvana@example.com',
+        cooperative: 'An Giang Rice Cooperative'
+      }
+    };
+    setPlot(mockPlotData);
     setLoading(false);
   }, [recordId]);
 
   console.log(recordId);
-  console.log(batch);
-
-  const handleGenerateQR = () => {
-    navigation.navigate('QRGenerate', { batch });
-  };
-
-  const handleEditBatch = () => {
-    // TODO: Implement edit functionality
-    console.log('Edit record:', recordId);
-  };
+  console.log(plot);
 
   const renderInfoItem = (icon: string, label: string, value: string, color: string) => (
     <View style={styles.infoItem}>
@@ -143,10 +168,10 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
     </View>
   );
 
-  if (!batch) {
+  if (!plot) {
     return (
       <SafeAreaView style={styles.container}>
-        <Header title="Record Details" onBack={() => navigation.goBack()} />
+        <Header title="Plot Details" onBack={() => navigation.goBack()} />
         <LoadingOverlay visible={loading} />
       </SafeAreaView>
     );
@@ -164,98 +189,235 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
         <View style={styles.headerCard}>
           <View style={styles.headerContent}>
             <View style={styles.titleContainer}>
-              <Text style={styles.productName}>{batch.product_name}</Text>
-              {!!batch.category && (
-                <View style={styles.categoryContainer}>
-                  <Icon name="tag-outline" size={16} color={theme.colors.textLight} />
-                  <Text style={styles.category}>{batch.category}</Text>
-                </View>
-              )}
+              <Text style={styles.productName}>{plot.plot_name}</Text>
+              <View style={styles.categoryContainer}>
+                <Icon name="map-marker" size={16} color={theme.colors.textLight} />
+                <Text style={styles.category}>{plot.location}</Text>
+              </View>
             </View>
-            <Badge text={batch.status?.toUpperCase() || 'SUBMITTED'} variant={batch.status === 'completed' ? 'success' : 'info'} />
+            <Badge text={plot.status?.toUpperCase() || 'PENDING'} variant={plot.status === 'verified' ? 'success' : 'warning'} />
           </View>
         </View>
 
-        {/* Verification Banner (from CreateRecord fields) */}
-        {batch.status === 'completed' && (
+        {/* MRV Verification Banner */}
+        {plot.status === 'verified' && (
           <View style={[styles.verificationBanner, styles.elevation]}>
             <View style={styles.verificationRow}>
               <Icon name="shield-check" size={22} color={theme.colors.success} />
-              <Text style={styles.verificationTitle}>Verification Complete</Text>
+              <Text style={styles.verificationTitle}>MRV Verification Complete</Text>
             </View>
             <Text style={styles.verificationText}>
-              This harvest has been verified by our AI system and contributes to your credit score.
+              This plot has been verified by our AI system and contributes to your carbon credit score.
             </Text>
           </View>
         )}
 
-        {/* Product Information */}
+        {/* Plot Information */}
         <View style={[styles.section, styles.elevation]}>
           <View style={styles.sectionHeader}>
             <Icon name="information" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Product Information</Text>
+            <Text style={styles.sectionTitle}>Plot Information</Text>
           </View>
-          <View style={styles.infoGrid}>
-            {renderInfoItem('weight-kilogram', 'Weight', `${batch.weight} kg`, theme.colors.primary)}
-            {renderInfoItem('ruler-square', 'Area', `${batch.area_ha || '-'} ha`, theme.colors.secondary)}
-            {renderInfoItem('leaf', 'Method', batch.cultivation_method, theme.colors.secondary)}
-            {renderInfoItem('calendar-blank', 'Planted', convertDateToISOString(new Date(batch.planting_date)), theme.colors.accent)}
-            {renderInfoItem('calendar-check', 'Harvested', convertDateToISOString(new Date(batch.harvest_date)), theme.colors.success)}
-            {renderInfoItem('cash', 'Avg Price', `${batch.avg_price || 0}`, theme.colors.info)}
+          
+          {/* Area Overview */}
+          <View style={styles.areaOverview}>
+            <View style={styles.areaCard}>
+              <Icon name="ruler-square" size={24} color={theme.colors.primary} />
+              <Text style={styles.areaValue}>{plot.mrvData.plotBoundaries.area} ha</Text>
+              <Text style={styles.areaLabel}>Total Area</Text>
+            </View>
+            <View style={styles.areaCard}>
+              <Icon name="rice" size={24} color={theme.colors.secondary} />
+              <Text style={styles.areaValue}>{plot.mrvData.ricePractices.area} ha</Text>
+              <Text style={styles.areaLabel}>Rice Area</Text>
+            </View>
+            <View style={styles.areaCard}>
+              <Icon name="tree" size={24} color={theme.colors.success} />
+              <Text style={styles.areaValue}>{plot.mrvData.agroforestrySystem.area} ha</Text>
+              <Text style={styles.areaLabel}>Agroforestry</Text>
+            </View>
           </View>
+
+          {/* Practice Details */}
+          <View style={styles.practiceDetails}>
+            <View style={styles.practiceRow}>
+              <View style={styles.practiceIcon}>
+                <Icon name="water" size={20} color={theme.colors.info} />
+              </View>
+              <View style={styles.practiceContent}>
+                <Text style={styles.practiceLabel}>AWD Cycle</Text>
+                <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.awdCycle}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.practiceRow}>
+              <View style={styles.practiceIcon}>
+                <Icon name="leaf" size={20} color={theme.colors.warning} />
+              </View>
+              <View style={styles.practiceContent}>
+                <Text style={styles.practiceLabel}>Straw Management</Text>
+                <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.strawManagement}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.practiceRow}>
+              <View style={styles.practiceIcon}>
+                <Icon name="calendar-blank" size={20} color={theme.colors.accent} />
+              </View>
+              <View style={styles.practiceContent}>
+                <Text style={styles.practiceLabel}>Sowing Date</Text>
+                <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.sowingDate}</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Agroforestry Details */}
+          {plot.mrvData.agroforestrySystem.area > 0 && (
+            <View style={styles.agroforestrySection}>
+              <Text style={styles.subsectionTitle}>Agroforestry Details</Text>
+              <View style={styles.agroforestryGrid}>
+                <View style={styles.agroforestryItem}>
+                  <Icon name="tree" size={16} color={theme.colors.success} />
+                  <Text style={styles.agroforestryLabel}>Tree Density</Text>
+                  <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.treeDensity} trees/ha</Text>
+                </View>
+                <View style={styles.agroforestryItem}>
+                  <Icon name="sprout" size={16} color={theme.colors.warning} />
+                  <Text style={styles.agroforestryLabel}>Species</Text>
+                  <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.species.join(', ')}</Text>
+                </View>
+                <View style={styles.agroforestryItem}>
+                  <Icon name="flower" size={16} color={theme.colors.accent} />
+                  <Text style={styles.agroforestryLabel}>Intercropping</Text>
+                  <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.intercropping.join(', ')}</Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
 
         {/* Farm Location */}
-        {/* Verification Photos */}
+        {/* MRV Evidence Photos */}
         <View style={[styles.section, styles.elevation]}>
           <View style={styles.sectionHeader}>
             <Icon name="image-multiple" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Verification Photos</Text>
+            <Text style={styles.sectionTitle}>MRV Evidence Photos</Text>
           </View>
           <View style={styles.photoGrid}>
-            {[batch.images.farm, batch.images.product, batch.images.farmer]
-              .filter((u): u is string => !!u)
-              .map((uri, idx) => (
-                <TouchableOpacity key={idx} activeOpacity={0.85} onPress={() => setSelectedImage(uri)}>
-                  <Image source={{ uri }} style={styles.photoThumb} />
+            {plot.mrvData.evidencePhotos
+              .filter((photo): photo is typeof photo & { url: string } => !!photo.url)
+              .map((photo, idx) => (
+                <TouchableOpacity key={photo.id} activeOpacity={0.85} onPress={() => setSelectedImage(photo.url)}>
+                  <Image source={{ uri: photo.url }} style={styles.photoThumb} />
                 </TouchableOpacity>
               ))}
-            {![batch.images.farm, batch.images.product, batch.images.farmer].some(Boolean) && (
-              <Text style={styles.emptyPhotos}>No verification photos available</Text>
+            {plot.mrvData.evidencePhotos.length === 0 && (
+              <Text style={styles.emptyPhotos}>No MRV evidence photos available</Text>
             )}
           </View>
         </View>
 
-        {/* Farm Location */}
+        {/* Plot Location */}
         <View style={[styles.section, styles.elevation]}>
           <View style={styles.sectionHeader}>
             <Icon name="map-marker" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Farm Location</Text>
+            <Text style={styles.sectionTitle}>Plot Location</Text>
           </View>
           <View style={styles.mapContainer}>
             <View style={styles.addressContainer}>
               <Icon name="home-variant" size={20} color={theme.colors.primary} />
-              <Text style={styles.address}>{batch.location.address}</Text>
+              <Text style={styles.address}>{plot.location}</Text>
             </View>
             <MapView
               style={styles.map}
               initialRegion={{
-                latitude: batch.location.latitude,
-                longitude: batch.location.longitude,
+                latitude: plot.mrvData.plotBoundaries.coordinates[0].lat,
+                longitude: plot.mrvData.plotBoundaries.coordinates[0].lng,
                 latitudeDelta: 0.0922,
                 longitudeDelta: 0.0421,
               }}>
               <Marker
                 coordinate={{
-                  latitude: batch.location.latitude,
-                  longitude: batch.location.longitude,
+                  latitude: plot.mrvData.plotBoundaries.coordinates[0].lat,
+                  longitude: plot.mrvData.plotBoundaries.coordinates[0].lng,
                 }}
               />
             </MapView>
           </View>
         </View>
+  {/* MRV Calculation Results */}
+  <View style={[styles.section, styles.elevation]}>
+          <View style={styles.sectionHeader}>
+            <Icon name="file-document" size={24} color={theme.colors.primary} />
+            <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
+          </View>
+          
+          {/* Total Carbon Impact & Carbon Badge */}
+          <View style={styles.carbonOverview}>
+            <View style={styles.carbonImpact}>
+              <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
+              <Text style={styles.carbonImpactValue}>2.09 tCO₂e</Text>
+              <Text style={styles.carbonImpactUnit}>per season</Text>
+            </View>
+            <View style={styles.carbonBadge}>
+              <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
+              <View style={styles.badgeContainer}>
+                <Text style={styles.badgeText}>Grade A</Text>
+              </View>
+            </View>
+          </View>
 
+          {/* Carbon Performance (CP) */}
+          <View style={styles.performanceSection}>
+            <View style={styles.performanceHeader}>
+              <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
+              <Text style={styles.performanceScore}>78.8/100</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
+            </View>
+            <View style={styles.performanceBreakdown}>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownText}>Rice AWD: 82.5/100 → 0.99 tCO₂e</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownText}>Agroforestry: 73.3/100 → 1.10 tCO₂e</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* MRV Reliability (MR) */}
+          <View style={styles.reliabilitySection}>
+            <View style={styles.reliabilityHeader}>
+              <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
+              <Text style={styles.reliabilityScore}>75.0/100</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
+            </View>
+            <View style={styles.reliabilityBreakdown}>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownText}>Rice evidence: 78/100 (photos + GPS + diary)</Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownText}>Agroforestry evidence: 72/100 (tree coverage)</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Blockchain Anchor & View MRV Report */}
+          <View style={styles.blockchainSection}>
+            <View style={styles.blockchainHeader}>
+              <Text style={styles.blockchainLabel}># Blockchain Anchor</Text>
+            </View>
+            <Text style={styles.blockchainHash}>0x1630ab50759f5</Text>
+            <TouchableOpacity style={styles.mrvReportButton}>
+              <Icon name="earth" size={16} color={theme.colors.white} />
+              <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         {/* Farmer Information */}
         <View style={[styles.section, styles.elevation]}>
           <View style={styles.sectionHeader}>
@@ -268,18 +430,24 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
               style={styles.farmerImage}
             />
             <View style={styles.farmerDetails}>
-              <Text style={styles.farmerName}>{batch.farmer.name}</Text>
+              <Text style={styles.farmerName}>{plot.farmer.name}</Text>
               <View style={styles.contactItem}>
                 <Icon name="phone" size={16} color={theme.colors.primary} />
-                <Text style={styles.farmerContact}>{batch.farmer.phone}</Text>
+                <Text style={styles.farmerContact}>{plot.farmer.phone}</Text>
               </View>
               <View style={styles.contactItem}>
                 <Icon name="email" size={16} color={theme.colors.primary} />
-                <Text style={styles.farmerContact}>{batch.farmer.email}</Text>
+                <Text style={styles.farmerContact}>{plot.farmer.email}</Text>
+              </View>
+              <View style={styles.contactItem}>
+                <Icon name="account-group" size={16} color={theme.colors.primary} />
+                <Text style={styles.farmerContact}>{plot.farmer.cooperative}</Text>
               </View>
             </View>
           </View>
         </View>
+
+      
       </ScrollView>
       <LoadingOverlay visible={loading} />
 
@@ -572,6 +740,344 @@ const styles = StyleSheet.create({
   },
   emptyPhotos: {
     color: theme.colors.textLight,
+  },
+  scoresGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  scoreCard: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  scoreValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    marginBottom: 4,
+  },
+  scoreUnit: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+  },
+  verificationGrid: {
+    gap: 16,
+    marginTop: 16,
+  },
+  verificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  verificationLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.text,
+  },
+  blockchainContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary + '10',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  blockchainText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontFamily: 'monospace',
+  },
+  blockchainInfo: {
+    gap: 16,
+    marginTop: 16,
+  },
+  blockchainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  blockchainLabel: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+  },
+  reportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.primary + '10',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  reportButtonText: {
+    fontSize: 14,
+    color: theme.colors.primary,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  areaOverview: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  areaCard: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  areaValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  areaLabel: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+  },
+  practiceDetails: {
+    gap: 16,
+    marginBottom: 20,
+  },
+  practiceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  practiceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  practiceContent: {
+    flex: 1,
+  },
+  practiceLabel: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    marginBottom: 4,
+  },
+  practiceValue: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.text,
+    lineHeight: 22,
+  },
+  agroforestrySection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 12,
+  },
+  agroforestryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  agroforestryItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  agroforestryLabel: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    marginTop: 6,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  agroforestryValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.text,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  carbonOverview: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
+  carbonImpact: {
+    flex: 1,
+  },
+  carbonImpactLabel: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    marginBottom: 8,
+  },
+  carbonImpactValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    marginBottom: 4,
+  },
+  carbonImpactUnit: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+  },
+  carbonBadge: {
+    alignItems: 'center',
+  },
+  carbonBadgeLabel: {
+    fontSize: 14,
+    color: theme.colors.textLight,
+    marginBottom: 8,
+  },
+  badgeContainer: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  badgeText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  performanceSection: {
+    marginBottom: 24,
+  },
+  performanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  performanceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  performanceScore: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: 4,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  performanceBreakdown: {
+    gap: 8,
+  },
+  breakdownItem: {
+    backgroundColor: theme.colors.background,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  breakdownText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    lineHeight: 20,
+  },
+  reliabilitySection: {
+    marginBottom: 24,
+  },
+  reliabilityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  reliabilityLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  reliabilityScore: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.warning,
+  },
+  reliabilityBreakdown: {
+    gap: 8,
+  },
+  blockchainSection: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  blockchainHeader: {
+    marginBottom: 12,
+  },
+  blockchainLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  blockchainHash: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: theme.colors.textLight,
+    backgroundColor: theme.colors.background,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  mrvReportButton: {
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    gap: 8,
+  },
+  mrvReportButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
   viewerOverlay: {
     position: 'absolute',

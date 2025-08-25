@@ -9,6 +9,7 @@ import { ThemedText } from '../component/ThemedText';
 import Card from '../component/Card';
 import StatsCard from '../component/StatsCard';
 import { Shadow } from 'react-native-shadow-2';
+import Header from '../component/Header';
 
 type Props = CompositeScreenProps<
   TabScreenProps<'Analytics'>,
@@ -22,6 +23,7 @@ const CreditProfileScreen: React.FC<Props> = ({ route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <Header title="Credit Profile Analysis" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Shadow startColor={'#00000010'} offset={[0, 2]} style={styles.fullWidth}>

@@ -48,6 +48,19 @@ interface ScoreBreakdown {
   impact: 'high' | 'medium' | 'low';
   trend: 'up' | 'down' | 'stable';
   description: string;
+  carbonReduction?: number; // tCO₂e
+  area?: number; // hectares
+}
+
+interface MRVData {
+  riceArea: number;
+  agroforestryArea: number;
+  treeCount: number;
+  awdCycle: string;
+  strawManagement: string;
+  evidencePhotos: number;
+  gpsVerified: boolean;
+  diaryCompleted: boolean;
 }
 
 // Avoid animating custom components directly to prevent nativeTag errors.
@@ -60,62 +73,84 @@ const CreditDashboardScreen: React.FC<Props> = ({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'breakdown' | 'how' | 'improve'>('breakdown');
 
+  const [mrvData, setMrvData] = useState<MRVData>({
+    riceArea: 1.5, // hectares
+    agroforestryArea: 0.7, // hectares
+    treeCount: 100, // trees
+    awdCycle: "7 days wet, 3 days dry",
+    strawManagement: "Incorporated into soil",
+    evidencePhotos: 8,
+    gpsVerified: true,
+    diaryCompleted: true,
+  });
+
   const [scores, setScores] = useState({
-    imageScore: 85,
-    yieldRisk: 75,
-    creditScore: 72,
+    carbonPerformance: 0,
+    mrvReliability: 0,
+    creditScore: 0,
+    carbonReduction: 0,
   });
 
   const [breakdown, setBreakdown] = useState<ScoreBreakdown[]>([
     {
-      category: 'Image Authenticity',
-      score: 85,
+      category: 'Rice AWD Practices',
+      score: 0,
       maxScore: 100,
-      icon: 'image',
+      icon: 'rice',
       color: theme.colors.success,
       impact: 'high',
       trend: 'up',
-      description: 'AI verification of crop images and authenticity signals',
+      description: 'Alternate Wetting and Drying cycle implementation',
+      carbonReduction: 0,
+      area: 0,
     },
     {
-      category: 'Yield Risk',
-      score: 75,
+      category: 'Agroforestry System',
+      score: 0,
       maxScore: 100,
-      icon: 'sprout',
+      icon: 'tree',
       color: theme.colors.warning,
       impact: 'high',
       trend: 'stable',
-      description: 'Estimated risk based on historical yields and season factors',
+      description: 'Tree density and carbon sequestration capacity',
+      carbonReduction: 0,
+      area: 0,
     },
     {
-      category: 'Historical Performance',
-      score: 65,
+      category: 'Evidence Collection',
+      score: 0,
       maxScore: 100,
-      icon: 'chart-line',
+      icon: 'camera',
       color: theme.colors.info,
       impact: 'medium',
       trend: 'up',
-      description: 'Consistency and delivery reliability over time',
+      description: 'Photo evidence and GPS verification quality',
+      carbonReduction: 0,
+      area: 0,
     },
     {
-      category: 'Training Score',
-      score: 90,
+      category: 'MRV Documentation',
+      score: 0,
       maxScore: 100,
-      icon: 'school',
+      icon: 'file-document',
       color: theme.colors.primary,
       impact: 'medium',
       trend: 'up',
-      description: 'Completion of training modules and quizzes',
+      description: 'Complete farming diary and practice records',
+      carbonReduction: 0,
+      area: 0,
     },
     {
-      category: 'Coop Membership',
-      score: 45,
+      category: 'Carbon Impact',
+      score: 0,
       maxScore: 100,
-      icon: 'account-group',
+      icon: 'leaf',
       color: theme.colors.secondary,
-      impact: 'low',
-      trend: 'stable',
-      description: 'Participation and standing within cooperatives',
+      impact: 'high',
+      trend: 'up',
+      description: 'Total carbon reduction and sequestration achieved',
+      carbonReduction: 0,
+      area: 0,
     },
   ]);
 
@@ -127,6 +162,54 @@ const CreditDashboardScreen: React.FC<Props> = ({
   });
 
   useEffect(() => {
+    // Tính toán điểm theo công thức AgriMRV
+    const results = calculateMRVScores();
+    
+    // Cập nhật breakdown data
+    const updatedBreakdown = breakdown.map((item, index) => {
+      switch (index) {
+        case 0: // Rice AWD
+          return {
+            ...item,
+            score: Math.round(results.cpTotal * 0.6),
+            carbonReduction: Math.round((results.totalCarbonReduction * 0.6) * 100) / 100,
+            area: mrvData.riceArea,
+          };
+        case 1: // Agroforestry
+          return {
+            ...item,
+            score: Math.round(results.cpTotal * 0.4),
+            carbonReduction: Math.round((results.totalCarbonReduction * 0.4) * 100) / 100,
+            area: mrvData.agroforestryArea,
+          };
+        case 2: // Evidence Collection
+          return {
+            ...item,
+            score: Math.round(results.mrTotal * 0.5),
+            carbonReduction: mrvData.evidencePhotos,
+            area: mrvData.evidencePhotos,
+          };
+        case 3: // MRV Documentation
+          return {
+            ...item,
+            score: Math.round(results.mrTotal * 0.5),
+            carbonReduction: mrvData.gpsVerified && mrvData.diaryCompleted ? 100 : 60,
+            area: 1,
+          };
+        case 4: // Carbon Impact
+          return {
+            ...item,
+            score: Math.round(results.cpTotal),
+            carbonReduction: results.totalCarbonReduction,
+            area: mrvData.riceArea + mrvData.agroforestryArea,
+          };
+        default:
+          return item;
+      }
+    });
+    
+    setBreakdown(updatedBreakdown);
+
     setTimeout(() => {
       setLoading(false);
     }, 2000);
@@ -148,14 +231,52 @@ const CreditDashboardScreen: React.FC<Props> = ({
     return 0;
   };
 
-  const handleAnchor = () => {
-    (navigation as any).navigate('BlockchainAnchor', {
-      profileId: 'default',
-      score: scores.creditScore
-    });
-  };
+  // Tính toán điểm theo công thức AgriMRV
+  const calculateMRVScores = () => {
+    // 1. Tính Carbon Reduction/Sequestration (tCO₂e)
+    const baselineCH4 = 1.2; // tCO₂e/ha/season (methane từ ruộng ngập)
+    const awdReduction = baselineCH4 * 0.3; // 30% giảm methane từ AWD
+    const strawAvoidance = 0.3; // tCO₂e/ha/season (không đốt rơm)
+    const ricePerHa = awdReduction + strawAvoidance; // 0.66 tCO₂e/ha/season
+    const riceTotalReduction = ricePerHa * mrvData.riceArea;
 
-  // Tabs: 'breakdown' | 'how' | 'improve'
+    // Agroforestry
+    const carbonPerTree = 0.022; // tCO₂/tree/year
+    const agroTotalSequestration = mrvData.treeCount * carbonPerTree * 0.5; // nửa năm demo
+
+    const totalCarbonReduction = riceTotalReduction + agroTotalSequestration;
+
+    // 2. Tính Carbon Performance (CP)
+    const riceTarget = 0.8; // tCO₂e/ha/season
+    const agroTarget = 1.5; // tCO₂e/ha/year
+
+    const cpRice = Math.min(100, (ricePerHa / riceTarget) * 100);
+    const cpAgro = Math.min(100, (agroTotalSequestration / mrvData.agroforestryArea / agroTarget) * 100);
+
+    const cpTotal = cpRice * 0.6 + cpAgro * 0.4;
+
+    // 3. Tính MRV Reliability (MR)
+    const mrRice = mrvData.evidencePhotos >= 6 ? 85 : 70; // dựa trên số ảnh
+    const mrAgro = mrvData.gpsVerified && mrvData.diaryCompleted ? 80 : 60; // dựa trên GPS và nhật ký
+    const mrTotal = mrRice * 0.5 + mrAgro * 0.5;
+
+    // 4. Badge Assignment
+    let badge = "C"; // mặc định
+    if (cpTotal >= 75 && mrTotal >= 75) badge = "A";
+    else if (cpTotal >= 60 && mrTotal >= 60) badge = "B";
+
+    // 5. Credit Score (weighted average)
+    const creditScore = cpTotal * 0.7 + mrTotal * 0.3;
+
+    setScores({
+      carbonPerformance: Math.round(cpTotal),
+      mrvReliability: Math.round(mrTotal),
+      creditScore: Math.round(creditScore),
+      carbonReduction: Math.round(totalCarbonReduction * 100) / 100,
+    });
+
+    return { cpTotal, mrTotal, creditScore, totalCarbonReduction, badge };
+  };
 
   const monthlyChange = +6; // mock monthly change
   const getImpactColor = (impact: 'high' | 'medium' | 'low') => {
@@ -167,6 +288,12 @@ const CreditDashboardScreen: React.FC<Props> = ({
       default:
         return theme.colors.success;
     }
+  };
+
+  const handleShare = () => {
+    navigation.navigate('CreditProfile', {
+      profileId: 'default',
+    });
   };
 
   return (
@@ -211,26 +338,33 @@ const CreditDashboardScreen: React.FC<Props> = ({
                   </View>
                 </View>
 
-                <View style={styles.indicators}>
-                  <View style={styles.indicator}>
-                    <LinearGradient
-                      colors={[theme.colors.success + '20', theme.colors.success + '10']}
-                      style={styles.indicatorIcon}>
-                      <Icon name="image-check" size={24} color={theme.colors.success} />
-                    </LinearGradient>
-                    <Text style={styles.indicatorLabel}>Image Score</Text>
-                    <Text style={styles.indicatorValue}>{scores.imageScore}/100</Text>
+                                  <View style={styles.indicators}>
+                    <View style={styles.indicator}>
+                      <LinearGradient
+                        colors={[theme.colors.success + '20', theme.colors.success + '10']}
+                        style={styles.indicatorIcon}>
+                        <Icon name="leaf" size={24} color={theme.colors.success} />
+                      </LinearGradient>
+                      <Text style={styles.indicatorLabel}>Carbon Performance</Text>
+                      <Text style={styles.indicatorValue}>{scores.carbonPerformance}/100</Text>
+                    </View>
+                    <View style={styles.indicator}>
+                      <LinearGradient
+                        colors={[theme.colors.warning + '20', theme.colors.warning + '10']}
+                        style={styles.indicatorIcon}>
+                        <Icon name="shield-check" size={24} color={theme.colors.warning} />
+                      </LinearGradient>
+                      <Text style={styles.indicatorLabel}>MRV Reliability</Text>
+                      <Text style={styles.indicatorValue}>{scores.mrvReliability}/100</Text>
+                    </View>
+                  
                   </View>
-                  <View style={styles.indicator}>
-                    <LinearGradient
-                      colors={[theme.colors.warning + '20', theme.colors.warning + '10']}
-                      style={styles.indicatorIcon}>
-                      <Icon name="trending-down" size={24} color={theme.colors.warning} />
-                    </LinearGradient>
-                    <Text style={styles.indicatorLabel}>Yield Risk</Text>
-                    <Text style={styles.indicatorValue}>{scores.yieldRisk}/100</Text>
-                  </View>
-                </View>
+                <ButtonCustom
+                    title="Share Credit Profile"
+                    onPress={handleShare}
+                    style={styles.anchorButton}
+                    icon="share-variant"
+                  />
               </Card>
             </Animated.View>
             <View style={styles.chartSection}>
@@ -341,6 +475,18 @@ const CreditDashboardScreen: React.FC<Props> = ({
                         </View>
                       </View>
                       <Text style={styles.factorDesc}>{item.description}</Text>
+                      {item.carbonReduction !== undefined && (
+                        <View style={styles.carbonInfo}>
+                          <Text style={styles.carbonLabel}>
+                            Carbon Impact: <Text style={[styles.carbonValue, { color: item.color }]}>
+                              {item.carbonReduction} {index < 2 ? 'tCO₂e' : index === 2 ? 'photos' : index === 3 ? 'score' : 'tCO₂e'}
+                            </Text>
+                          </Text>
+                          {item.area && index < 2 && (
+                            <Text style={styles.areaInfo}>Area: {item.area} ha</Text>
+                          )}
+                        </View>
+                      )}
                     </View>
                   ))}
                 </Card>
@@ -355,25 +501,25 @@ const CreditDashboardScreen: React.FC<Props> = ({
                     <Text style={styles.howTitle}>How Your Score Works</Text>
                   </View>
                   <Text style={styles.howText}>
-                    Your AgriCred score is calculated using AI analysis of your farming data, including crop quality, harvest
-                    consistency, and farm management practices.
+                    Your AgriMRV score is calculated using the official carbon calculation methodology, including AWD rice practices, 
+                    agroforestry sequestration, and MRV evidence quality.
                   </Text>
                   <View style={styles.rangeGrid}>
                     <View style={styles.rangeCol}>
-                      <Text style={styles.rangeLabel}>750-850</Text>
-                      <Text style={[styles.rangeTag, { color: theme.colors.success }]}>Excellent</Text>
+                      <Text style={styles.rangeLabel}>75-100</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.success }]}>Grade A</Text>
                     </View>
                     <View style={styles.rangeCol}>
-                      <Text style={styles.rangeLabel}>650-749</Text>
-                      <Text style={[styles.rangeTag, { color: theme.colors.info }]}>Good</Text>
+                      <Text style={styles.rangeLabel}>60-74</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.info }]}>Grade B</Text>
                     </View>
                     <View style={styles.rangeCol}>
-                      <Text style={styles.rangeLabel}>550-649</Text>
-                      <Text style={[styles.rangeTag, { color: theme.colors.warning }]}>Fair</Text>
+                      <Text style={styles.rangeLabel}>45-59</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.warning }]}>Grade C</Text>
                     </View>
                     <View style={styles.rangeCol}>
-                      <Text style={styles.rangeLabel}>300-549</Text>
-                      <Text style={[styles.rangeTag, { color: theme.colors.error }]}>Poor</Text>
+                      <Text style={styles.rangeLabel}>0-44</Text>
+                      <Text style={[styles.rangeTag, { color: theme.colors.error }]}>Grade D</Text>
                     </View>
                   </View>
                 </Card>
@@ -442,12 +588,7 @@ const CreditDashboardScreen: React.FC<Props> = ({
               </Animated.View>
             )}
 
-            <ButtonCustom
-              title="Anchor to Blockchain"
-              onPress={handleAnchor}
-              style={styles.anchorButton}
-              icon="link-variant"
-            />
+          
           </View>
         </ScrollView>
       </LinearGradient>
@@ -667,7 +808,7 @@ const styles = StyleSheet.create({
   trendText: { color: theme.colors.textLight, fontSize: theme.typography.fontSize.xs },
   factorDesc: { marginTop: 6, color: theme.colors.textLight, fontSize: theme.typography.fontSize.sm },
   anchorButton: {
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.lg,
   },
   shimmer: {
     width: 120,
@@ -793,6 +934,25 @@ const styles = StyleSheet.create({
   improveImpact: {
     marginTop: 6,
     fontSize: theme.typography.fontSize.xs,
+  },
+  carbonInfo: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: theme.colors.background,
+    borderRadius: 6,
+  },
+  carbonLabel: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+  },
+  carbonValue: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontWeight: 'bold',
+  },
+  areaInfo: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+    marginTop: 2,
   },
 });
 

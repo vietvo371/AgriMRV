@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/Api';
 import Card from '../component/Card';
 import LinearGradient from 'react-native-linear-gradient';
+import ModalCustom from '../component/ModalCustom';
+import Clipboard from '@react-native-clipboard/clipboard';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -37,21 +39,27 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     profile_image: '',
   });
   const [profileData, setProfileData] = useState({
-    'id': "1",
-    'full_name': "Nguyen Van A",
-    'email': "nguyenvana@gmail.com",
-    'phone_number': "0909090909",
-    'address': "123 Nguyen Van Linh, Q9, TP.HCM",
-    'role': "farmer",
-    'profile_image': "https://via.placeholder.com/150",
-    'stats': {
-      'total_batches': "10",
-      'active_batches': "5",
-      'total_scans': "100",
-      'average_rating': "4.5"
-    }
-
+    id: '1',
+    full_name: 'Võ Văn Việt',
+    email: 'vietvo371@gmail.com',
+    phone_number: '+10708585120',
+    address: '132',
+    role: 'farmer',
+    profile_image: 'https://via.placeholder.com/150',
+    credit_score: 742,
+    quick: { harvests: 5, ai_verified: 98, hectares: 2.5 },
+    personal: { dob: '0312-12-04', location: '132' },
+    farm: { crop: 'corn', area_ha: 2132, last_sowing: '2025-08-01', expected_yield_tons: 321 },
+    yields: [
+      { season: 'Spring 2024', amount: '5.8 tons' },
+      { season: 'Winter 2023', amount: '4.9 tons' },
+      { season: 'Spring 2023', amount: '5.2 tons' },
+    ],
+    memberships: { coop: 'farmers-united', coop_status: 'Active', training: 'Agricultural Best Practices', training_score: '85% Score' },
+    loans: { summary: '2 loans, 100% repaid on time', rating: 'Excellent' },
+    stats: { total_batches: '10', active_batches: '5', total_scans: '100', average_rating: '4.5' },
   });
+  const [shareModalVisible, setShareModalVisible] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fetchUser = async () => {
     try {
@@ -71,6 +79,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   useEffect(() => {
     fetchUser();
   }, []);
+
+  const shareCode = useMemo(() => {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return `AGC-${code}`;
+  }, []);
+
+  const copyShareCode = () => {
+    Clipboard.setString(shareCode);
+    Alert.alert('Copied', 'Share code copied to clipboard');
+  };
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -172,6 +194,36 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Summary header */}
+        <Card style={[styles.profileHeader, styles.elevation]}> 
+          <View style={[styles.rowBetween, { marginBottom: theme.spacing.sm }]}> 
+            <View style={{ flex: 1 }}> 
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}> 
+                <Text style={[styles.infoTitle, { flex: 0 }]}>{profileData.full_name}</Text> 
+                <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}> 
+                  <Text style={[styles.badgeText, { color: theme.colors.success }]}>Verified Farmer</Text> 
+                </View> 
+              </View> 
+              <Text style={[styles.muted, { marginTop: 4 }]}>Credit Score: <Text style={{ color: theme.colors.text }}>{profileData.credit_score}</Text></Text> 
+            </View> 
+            <ButtonCustom title="Share" icon="share-variant" onPress={() => setShareModalVisible(true)} /> 
+          </View>
+
+          <View style={[styles.statsGrid, { marginTop: theme.spacing.sm }]}> 
+            <View style={styles.statCard}> 
+              <Text style={styles.statValue}>{profileData.quick.harvests}</Text> 
+              <Text style={styles.statLabel}>Harvests</Text> 
+            </View> 
+            <View style={styles.statCard}> 
+              <Text style={styles.statValue}>{profileData.quick.ai_verified}%</Text> 
+              <Text style={styles.statLabel}>AI Verified</Text> 
+            </View> 
+            <View style={styles.statCard}> 
+              <Text style={styles.statValue}>{profileData.quick.hectares}</Text> 
+              <Text style={styles.statLabel}>Hectares</Text> 
+            </View> 
+          </View>
+        </Card>
         <Card style={[styles.profileHeader, styles.elevation]}>
           <View style={styles.imageContainer}>
             <ImagePicker
@@ -237,17 +289,17 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           </View>
           <View style={styles.twoCol}>
             <View style={styles.colItem}>
-              <Text style={styles.muted}>Name</Text>
-              <Text style={styles.value}>{profileData.full_name || '—'}</Text>
+              <Text style={styles.muted}>Phone</Text>
+              <Text style={styles.value}>{profileData.phone_number || '—'}</Text>
             </View>
             <View style={styles.colItem}>
-              <Text style={styles.muted}>Role</Text>
-              <View style={[styles.badgePill, { backgroundColor: theme.colors.background }]}><Text style={styles.badgeText}>{profileData.role || '—'}</Text></View>
+              <Text style={styles.muted}>Email</Text>
+              <Text style={styles.value}>{profileData.email || '—'}</Text>
             </View>
           </View>
           <View style={styles.twoCol}>
-            <View style={styles.colItem}><Text style={styles.muted}>Phone</Text><Text style={styles.value}>{profileData.phone_number || '—'}</Text></View>
-            <View style={styles.colItem}><Text style={styles.muted}>Email</Text><Text style={styles.value}>{profileData.email || '—'}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Date of Birth</Text><Text style={styles.value}>{profileData.personal.dob}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Location</Text><Text style={styles.value}>{profileData.personal.location}</Text></View>
           </View>
         </Card>
 
@@ -258,14 +310,29 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <Text style={styles.infoTitle}>Farm Details</Text>
           </View>
           <View style={styles.twoCol}>
-            <View style={styles.colItem}><Text style={styles.muted}>Crop Type</Text><Text style={styles.value}>{'rice'}</Text></View>
-            <View style={styles.colItem}><Text style={styles.muted}>Area (Ha)</Text><Text style={styles.value}>{'99 ha'}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Primary Crop</Text><Text style={styles.value}>{profileData.farm.crop}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Farm Area</Text><Text style={styles.value}>{profileData.farm.area_ha} hectares</Text></View>
           </View>
           <View style={styles.infoDivider} />
           <View style={styles.twoCol}>
-            <View style={styles.colItem}><Text style={styles.muted}>Expected Yield</Text><Text style={styles.value}>{'99 tons'}</Text></View>
-            <View style={styles.colItem}><Text style={styles.muted}>Sowing Date</Text><Text style={styles.value}>{'2025-07-31'}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Last Sowing</Text><Text style={styles.value}>{profileData.farm.last_sowing}</Text></View>
+            <View style={styles.colItem}><Text style={styles.muted}>Expected Yield</Text><Text style={styles.value}>{profileData.farm.expected_yield_tons} tons</Text></View>
           </View>
+        </Card>
+
+        {/* Recent Yields */}
+        <Card style={[styles.infoCard, styles.elevation]}>
+          <View style={styles.infoHeader}>
+            <View style={styles.headerIcon}><Icon name="sprout" size={16} color={theme.colors.primary} /></View>
+            <Text style={styles.infoTitle}>Recent Yields</Text>
+          </View>
+          <Text style={[styles.muted, { marginBottom: theme.spacing.sm }]}>Last 3 seasons</Text>
+          {profileData.yields.map((y: any, idx: number) => (
+            <View key={idx} style={[styles.rowBetween, { marginBottom: 8 }]}>
+              <Text style={styles.value}>{y.season}</Text>
+              <Text style={styles.value}>{y.amount}</Text>
+            </View>
+          ))}
         </Card>
 
         {/* Memberships & Training */}
@@ -278,17 +345,29 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <View>
               <View style={styles.rowBetween}>
                 <Text style={styles.value}>Cooperative Member</Text>
-                <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.success }]}>Active</Text></View>
+                <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.success }]}>{profileData.memberships.coop_status}</Text></View>
               </View>
-              <Text style={[styles.muted, { marginTop: 4 }]}>green-valley</Text>
+              <Text style={[styles.muted, { marginTop: 4 }]}>{profileData.memberships.coop}</Text>
             </View>
             <View>
               <View style={styles.rowBetween}>
                 <Text style={styles.value}>Training Completed</Text>
-                <View style={[styles.badgePill, { backgroundColor: theme.colors.warning + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.warning }]}>85% Score</Text></View>
+                <View style={[styles.badgePill, { backgroundColor: theme.colors.warning + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.warning }]}>{profileData.memberships.training_score}</Text></View>
               </View>
-              <Text style={[styles.muted, { marginTop: 4 }]}>Agricultural Best Practices</Text>
+              <Text style={[styles.muted, { marginTop: 4 }]}>{profileData.memberships.training}</Text>
             </View>
+          </View>
+        </Card>
+
+        {/* Loan History */}
+        <Card style={[styles.infoCard, styles.elevation]}>
+          <View style={styles.infoHeader}>
+            <View style={styles.headerIcon}><Icon name="credit-card-check" size={16} color={theme.colors.primary} /></View>
+            <Text style={styles.infoTitle}>Loan History</Text>
+          </View>
+          <View style={styles.rowBetween}>
+            <Text style={styles.value}>{profileData.loans.summary}</Text>
+            <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.success }]}>{profileData.loans.rating}</Text></View>
           </View>
         </Card>
         <View style={styles.logoutContainer}>
@@ -304,6 +383,39 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         {/* Logout button */}
        
         <LoadingOverlay visible={loading} message="Updating profile..." />
+        <ModalCustom
+          isModalVisible={shareModalVisible}
+          setIsModalVisible={setShareModalVisible}
+          title="Share Profile with Bank"
+          isAction={false}
+        >
+          <Text style={styles.muted}>Share your verified credit profile with partner banks for loan applications</Text>
+          <View style={{ marginTop: theme.spacing.md }}>
+            <Text style={styles.muted}>Share Code</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+              <View style={{ flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: theme.colors.background }}>
+                <Text style={{ fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text }}>{shareCode}</Text>
+              </View>
+              <TouchableOpacity onPress={copyShareCode} style={{ padding: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 10 }}> 
+                <Icon name="content-copy" size={18} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.muted, { marginTop: 6 }]}>This code expires in 24 hours and allows banks to view your credit profile</Text>
+          </View>
+          <View style={{ marginTop: theme.spacing.md }}>
+            <Text style={[styles.infoTitle, { fontSize: theme.typography.fontSize.md }]}>What banks will see:</Text>
+            <View style={{ marginTop: 8, gap: 6 }}>
+              <Text style={styles.muted}>• Credit score and rating</Text>
+              <Text style={styles.muted}>• Verified crop data and yields</Text>
+              <Text style={styles.muted}>• Loan repayment history</Text>
+              <Text style={styles.muted}>• Cooperative membership status</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: theme.spacing.lg }}>
+            <ButtonCustom title="Cancel" variant="secondary" onPress={() => setShareModalVisible(false)} style={{ flex: 1 }} />
+            <ButtonCustom title="Done" onPress={() => setShareModalVisible(false)} style={{ flex: 1 }} />
+          </View>
+        </ModalCustom>
       </LinearGradient>
     </SafeAreaView>
   );

@@ -141,7 +141,7 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
           </View>
           <View style={styles.filterRow}>
-            {(['all', 'verified', 'needs_review', 'processing'] as const).map(key => (
+            {(['all', 'verified', 'needs_review'] as const).map(key => (
               <TouchableOpacity
                 key={key}
                 style={[styles.chip, statusFilter === key && styles.chipActive]}

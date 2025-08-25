@@ -117,7 +117,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               style={styles.title}
               entering={FadeIn.duration(500).delay(500)}
             >
-              AgriCred
+              AgriMRV
             </Animated.Text>
 
             <Animated.Text
@@ -133,7 +133,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
               entering={FadeInUp.springify().mass(1).damping(30).delay(500)}
             >
               <Animated.Text style={styles.buttonText}>
-                Start now
+                Start MRV journey
               </Animated.Text>
             </AnimatedPressable>
           </View>
