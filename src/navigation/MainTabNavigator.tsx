@@ -20,6 +20,7 @@ import ImageUploadScreen from '../screens/ImageUploadScreen';
 import BlockchainAnchorScreen from '../screens/BlockchainAnchorScreen';
 import TrainingQuizScreen from '../screens/TrainingQuizScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import FinanceScreen from '../screens/FinanceScreen';
 
 // Bank/Coop Screens
 import BankViewerScreen from '../screens/BankViewerScreen';
@@ -102,12 +103,12 @@ const MainTabs = () => {
         }}
       />
        <Tab.Screen
-        name="Banks"
-        component={BanksScreen}
+        name="Finance"
+        component={FinanceScreen}
         options={{
-          title: 'Banks',
+          title: 'Finance',
           tabBarIcon: ({ color, size }) => (
-            <Icon name="bank-transfer" size={size + 4} color={color} />
+            <Icon name="finance" size={size + 4} color={color} />
           ),
         }}
       />
@@ -217,7 +218,7 @@ const MainNavigator = () => {
         <Stack.Screen name="CreateRecord" component={CreateRecordScreen as any} />
         <Stack.Screen name="RecordDetail" component={RecordDetailScreen as any} />
         <Stack.Screen name="RecordList" component={RecordListScreen as any} />
-        <Stack.Screen name="Banks" component={BanksScreen as any} />
+        <Stack.Screen name="Finance" component={FinanceScreen as any} />
         <Stack.Screen name="Profile" component={ProfileScreen as any} />
       </Stack.Group>
     </Stack.Navigator>

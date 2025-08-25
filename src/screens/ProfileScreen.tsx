@@ -8,77 +8,62 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { theme } from '../theme/colors';
-import Header from '../component/Header';
 import ImagePicker from '../component/ImagePicker';
-import InputCustom from '../component/InputCustom';
 import ButtonCustom from '../component/ButtonCustom';
-import LoadingOverlay from '../component/LoadingOverlay';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../utils/Api';
 import Card from '../component/Card';
 import LinearGradient from 'react-native-linear-gradient';
 import ModalCustom from '../component/ModalCustom';
 import Clipboard from '@react-native-clipboard/clipboard';
+import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+
+const { width } = Dimensions.get('window');
 
 interface ProfileScreenProps {
   navigation: any;
 }
 
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isEditing] = useState(false);
+  const [loading] = useState(false);
   const { user, signOut } = useAuth();
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone_number: '',
-    address: '',
-    profile_image: '',
-  });
-  const [profileData, setProfileData] = useState({
-    id: '1',
-    full_name: 'Võ Văn Việt',
-    email: 'vietvo371@gmail.com',
-    phone_number: '+10708585120',
-    address: '132',
-    role: 'farmer',
-    profile_image: 'https://via.placeholder.com/150',
-    credit_score: 742,
-    quick: { harvests: 5, ai_verified: 98, hectares: 2.5 },
-    personal: { dob: '0312-12-04', location: '132' },
-    farm: { crop: 'corn', area_ha: 2132, last_sowing: '2025-08-01', expected_yield_tons: 321 },
-    yields: [
-      { season: 'Spring 2024', amount: '5.8 tons' },
-      { season: 'Winter 2023', amount: '4.9 tons' },
-      { season: 'Spring 2023', amount: '5.2 tons' },
+  const [activeTab, setActiveTab] = useState<'personal' | 'farm' | 'achievements'>('personal');
+  
+  const [profileData, setProfileData] = useState<any>({
+    farmer: {
+      name: 'Nguyễn Văn An',
+      avatar: 'https://via.placeholder.com/150',
+      carbonGrade: 'B',
+      joinDate: '2023-06-15',
+      phone: '+84 901 234 567',
+      email: 'nguyenvanan@email.com',
+      location: 'An Giang Province',
+    },
+    farmStats: {
+      totalArea: 2.5,
+      carbonCreditsEarned: 68,
+      verificationRate: 95,
+      monthlyIncome: 450,
+    },
+    yieldHistory: [
+      { season: 'Winter 2023', crop: 'Rice', yield: 6.2, price: 8500 },
+      { season: 'Summer 2023', crop: 'Rice', yield: 5.8, price: 8200 },
     ],
-    memberships: { coop: 'farmers-united', coop_status: 'Active', training: 'Agricultural Best Practices', training_score: '85% Score' },
-    loans: { summary: '2 loans, 100% repaid on time', rating: 'Excellent' },
-    stats: { total_batches: '10', active_batches: '5', total_scans: '100', average_rating: '4.5' },
+    memberships: {
+      cooperative: 'An Giang Farmers Cooperative',
+      trainingCompleted: ['Basic AWD', 'Carbon Farming', 'Digital Literacy'],
+      loanHistory: [
+        { date: '2023-08-01', amount: 15000000, status: 'repaid', purpose: 'Seeds & Fertilizer' },
+      ],
+    },
   });
+  
   const [shareModalVisible, setShareModalVisible] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const fetchUser = async () => {
-    try {
-      const response = await api.get('/user/profile');
-      setProfileData(response.data.data);
-      setFormData({
-        full_name: response.data.data.full_name,
-        email: response.data.data.email,
-        phone_number: response.data.data.phone_number,
-        address: response.data.data.address,
-        profile_image: response.data.data.profile_image,
-      });
-    } catch (error: any) {
-      console.error('Error fetching user:', error.response);
-    }
-  };
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  const [errors] = useState<Record<string, string>>({});
 
   const shareCode = useMemo(() => {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -92,77 +77,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const copyShareCode = () => {
     Clipboard.setString(shareCode);
     Alert.alert('Copied', 'Share code copied to clipboard');
-  };
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setFormData({
-      full_name: profileData.full_name,
-      email: profileData.email,
-      phone_number: profileData.phone_number,
-      address: profileData.address,
-      profile_image: profileData.profile_image,
-    });
-    setErrors({});
-    setIsEditing(false);
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.full_name) {
-      newErrors.full_name = 'Full name is required';
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!formData.phone_number) {
-      newErrors.phone_number = 'Phone number is required';
-    } else if (!/^\+?[\d\s-]{10,}$/.test(formData.phone_number)) {
-      newErrors.phone_number = 'Please enter a valid phone number';
-    }
-
-    if (!formData.address) {
-      newErrors.address = 'Address is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('Updating profile with:', formData);
-      const delay = new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
-      const [response] = await Promise.all([
-        api.put('/user/profile', formData),
-        delay,
-      ]);
-      console.log('Updating profile with:', response.data.data);
-      // Optional: đồng bộ lại dữ liệu hiển thị
-      setProfileData(prev => ({
-        ...prev,
-        ...response.data.data,
-        stats: prev.stats,
-      }));
-      setIsEditing(false);
-    } catch (error: any) {
-      console.log('Profile update error:', error.response);
-      Alert.alert('Error', 'Failed to update profile');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleLogout = () => {
@@ -178,7 +92,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           text: 'Logout',
           style: 'destructive',
           onPress: () => {
-            // TODO: Implement actual logout logic
             signOut();
             navigation.replace('Login');
           },
@@ -188,232 +101,463 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <LinearGradient colors={[theme.colors.secondary + '30', theme.colors.white]} style={{ flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.container}>
+      <LinearGradient 
+        colors={[theme.colors.primary + '10', theme.colors.white]} 
+        style={{ flex: 1 }}
       >
-        {/* Summary header */}
-        <Card style={[styles.profileHeader, styles.elevation]}> 
-          <View style={[styles.rowBetween, { marginBottom: theme.spacing.sm }]}> 
-            <View style={{ flex: 1 }}> 
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}> 
-                <Text style={[styles.infoTitle, { flex: 0 }]}>{profileData.full_name}</Text> 
-                <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}> 
-                  <Text style={[styles.badgeText, { color: theme.colors.success }]}>Verified Farmer</Text> 
-                </View> 
-              </View> 
-              <Text style={[styles.muted, { marginTop: 4 }]}>Credit Score: <Text style={{ color: theme.colors.text }}>{profileData.credit_score}</Text></Text> 
-            </View> 
-            <ButtonCustom title="Share" icon="share-variant" onPress={() => setShareModalVisible(true)} /> 
-          </View>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Enhanced Profile Header */}
+          <Animated.View entering={FadeInDown.duration(500).springify()}>
+            <Card style={[styles.profileHeader, styles.elevation]}>
+              <View style={styles.headerRow}>
+                <View style={styles.profileInfo}>
+                  <ImagePicker
+                    imageUri={profileData.farmer.avatar}
+                    onImageSelected={uri =>
+                      setProfileData((prev: any) => ({ ...prev, farmer: { ...prev.farmer, avatar: uri } }))
+                    }
+                    error={errors.profile_image}
+                    isCircle
+                    size={80}
+                    containerStyle={styles.avatarContainer}
+                  />
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{profileData.farmer.name}</Text>
+                    <View style={styles.userBadgeRow}>
+                      <View style={styles.verifiedBadge}>
+                        <Icon name="shield-check" size={14} color={theme.colors.success} />
+                        <Text style={styles.verifiedText}>MRV Verified</Text>
+                      </View>
+                      <View style={styles.gradeBadge}>
+                        <Icon name="star" size={14} color={theme.colors.primary} />
+                        <Text style={styles.gradeText}>Grade {profileData.farmer.carbonGrade}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.locationRow}>
+                      <Icon name="map-marker" size={16} color={theme.colors.textLight} />
+                      <Text style={styles.locationText}>{profileData.farmer.location}</Text>
+                    </View>
+                  </View>
+                </View>
+                <TouchableOpacity 
+                  style={styles.shareButton}
+                  onPress={() => setShareModalVisible(true)}
+                >
+                  <Icon name="share-variant" size={20} color={theme.colors.primary} />
+                </TouchableOpacity>
+              </View>
 
-          <View style={[styles.statsGrid, { marginTop: theme.spacing.sm }]}> 
-            <View style={styles.statCard}> 
-              <Text style={styles.statValue}>{profileData.quick.harvests}</Text> 
-              <Text style={styles.statLabel}>Harvests</Text> 
-            </View> 
-            <View style={styles.statCard}> 
-              <Text style={styles.statValue}>{profileData.quick.ai_verified}%</Text> 
-              <Text style={styles.statLabel}>AI Verified</Text> 
-            </View> 
-            <View style={styles.statCard}> 
-              <Text style={styles.statValue}>{profileData.quick.hectares}</Text> 
-              <Text style={styles.statLabel}>Hectares</Text> 
-            </View> 
-          </View>
-        </Card>
-        <Card style={[styles.profileHeader, styles.elevation]}>
-          <View style={styles.imageContainer}>
-            <ImagePicker
-              imageUri={profileData.profile_image}
-              onImageSelected={uri =>
-                setFormData(prev => ({ ...prev, profile_image: uri }))
-              }
-              error={errors.profile_image}
-              isCircle
-              size={120}
-              containerStyle={styles.imagePicker}
-            />
-            <Text style={styles.roleText}>{profileData.full_name}</Text>
-            {!isEditing && (
-              <View style={styles.roleContainer}>
-                <Icon name="shield-account-outline" size={16} color={theme.colors.primary} />
-                <Text style={styles.roleText}>
-                  {profileData.role?.charAt(0).toUpperCase() +
-                    profileData.role?.slice(1)}
+              {/* Enhanced Stats Row */}
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <LinearGradient
+                    colors={[theme.colors.success + '20', theme.colors.success + '10']}
+                    style={styles.statIcon}
+                  >
+                    <Icon name="leaf" size={20} color={theme.colors.success} />
+                  </LinearGradient>
+                  <Text style={styles.statValue}>1.9</Text>
+                  <Text style={styles.statLabel}>tCO₂e reduced</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <LinearGradient
+                    colors={[theme.colors.warning + '20', theme.colors.warning + '10']}
+                    style={styles.statIcon}
+                  >
+                    <Icon name="chart-line" size={20} color={theme.colors.warning} />
+                  </LinearGradient>
+                  <Text style={styles.statValue}>75%</Text>
+                  <Text style={styles.statLabel}>MRV reliability</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <LinearGradient
+                    colors={[theme.colors.primary + '20', theme.colors.primary + '10']}
+                    style={styles.statIcon}
+                  >
+                    <Icon name="map" size={20} color={theme.colors.primary} />
+                  </LinearGradient>
+                  <Text style={styles.statValue}>{profileData.farmStats.totalArea}</Text>
+                  <Text style={styles.statLabel}>Total hectares</Text>
+                </View>
+              </View>
+            </Card>
+          </Animated.View>
+
+          {/* Enhanced Tabs */}
+          <View style={styles.tabsContainer}>
+            {[
+              { key: 'personal', label: 'Personal', icon: 'account' },
+              { key: 'farm', label: 'Farm', icon: 'leaf' },
+              { key: 'achievements', label: 'Achievements', icon: 'trophy' },
+            ].map((tab: any) => (
+              <TouchableOpacity
+                key={tab.key}
+                style={[
+                  styles.tabButton,
+                  activeTab === tab.key && styles.tabButtonActive,
+                ]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.8}
+              >
+                <Icon 
+                  name={tab.icon} 
+                  size={18} 
+                  color={activeTab === tab.key ? theme.colors.primary : theme.colors.textLight} 
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab.key && styles.tabTextActive,
+                  ]}
+                >
+                  {tab.label}
                 </Text>
-              </View>
-            )}
+              </TouchableOpacity>
+            ))}
           </View>
 
-          <View style={styles.statsSection}>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: theme.colors.primary + '15' }]}>
-                  <Icon name="package-variant-closed" size={24} color={theme.colors.primary} />
+          {/* Tab Content */}
+          {activeTab === 'personal' && (
+            <Animated.View entering={FadeInRight.duration(300).springify()}>
+              <Card style={[styles.contentCard, styles.elevation]}>
+                <View style={styles.cardHeader}>
+                  <Icon name="account-circle" size={24} color={theme.colors.primary} />
+                  <Text style={styles.cardTitle}>Personal Information</Text>
                 </View>
-                <Text style={styles.statValue}>{profileData.stats.total_batches}</Text>
-                <Text style={styles.statLabel}>Total Batches</Text>
-              </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: theme.colors.success + '15' }]}>
-                  <Icon name="package-variant" size={24} color={theme.colors.success} />
+                
+                <View style={styles.infoGrid}>
+                  <View style={styles.infoItem}>
+                    <View style={styles.infoIconContainer}>
+                      <Icon name="phone" size={18} color={theme.colors.info} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Phone</Text>
+                      <Text style={styles.infoValue}>{profileData.farmer.phone}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <View style={styles.infoIconContainer}>
+                      <Icon name="email" size={18} color={theme.colors.warning} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Email</Text>
+                      <Text style={styles.infoValue}>{profileData.farmer.email}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <View style={styles.infoIconContainer}>
+                      <Icon name="calendar" size={18} color={theme.colors.success} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Date of birth</Text>
+                      <Text style={styles.infoValue}>Jan 15, 1985</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <View style={styles.infoIconContainer}>
+                      <Icon name="map-marker" size={18} color={theme.colors.error} />
+                    </View>
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Location</Text>
+                      <Text style={styles.infoValue}>{profileData.farmer.location}</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.statValue}>{profileData.stats.active_batches}</Text>
-                <Text style={styles.statLabel}>Active Batches</Text>
-              </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: theme.colors.secondary + '15' }]}>
-                  <Icon name="qrcode-scan" size={24} color={theme.colors.secondary} />
+              </Card>
+            </Animated.View>
+          )}
+
+          {activeTab === 'farm' && (
+            <Animated.View entering={FadeInRight.duration(300).springify()}>
+              {/* Farm Profile Card */}
+              <Card style={[styles.contentCard, styles.elevation]}>
+                <View style={styles.cardHeader}>
+                  <Icon name="leaf" size={24} color={theme.colors.success} />
+                  <Text style={styles.cardTitle}>Farm Profile</Text>
                 </View>
-                <Text style={styles.statValue}>{profileData.stats.total_scans}</Text>
-                <Text style={styles.statLabel}>Total Scans</Text>
-              </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: theme.colors.warning + '15' }]}>
-                  <Icon name="star-outline" size={24} color={theme.colors.warning} />
+                
+                <View style={styles.farmStatsGrid}>
+                  <View style={styles.farmStatItem}>
+                    <Text style={styles.farmStatLabel}>Primary crop</Text>
+                    <View style={styles.cropInfo}>
+                      <View style={[styles.cropDot, { backgroundColor: theme.colors.success }]} />
+                      <Text style={styles.farmStatValue}>Rice</Text>
+                    </View>
+                  </View>
+                  <View style={styles.farmStatItem}>
+                    <Text style={styles.farmStatLabel}>Farm area</Text>
+                    <Text style={styles.farmStatValue}>{profileData.farmStats.totalArea} ha</Text>
+                  </View>
+                  <View style={styles.farmStatItem}>
+                    <Text style={styles.farmStatLabel}>Last sowing</Text>
+                    <Text style={styles.farmStatValue}>Mar 2024</Text>
+                  </View>
+                  <View style={styles.farmStatItem}>
+                    <Text style={styles.farmStatLabel}>Expected yield</Text>
+                    <Text style={styles.farmStatValue}>5.2 tons</Text>
+                  </View>
                 </View>
-                <Text style={styles.statValue}>{profileData.stats.average_rating}</Text>
-                <Text style={styles.statLabel}>Avg Rating</Text>
-              </View>
-            </View>
-          </View>
-        </Card>
-        {/* Profile Overview */}
-        <Card style={[styles.infoCard, styles.elevation]}>
-          <View style={styles.infoHeader}>
-            <View style={styles.headerIcon}><Icon name="account-outline" size={16} color={theme.colors.primary} /></View>
-            <Text style={styles.infoTitle}>Profile Overview</Text>
-          </View>
-          <View style={styles.twoCol}>
-            <View style={styles.colItem}>
-              <Text style={styles.muted}>Phone</Text>
-              <Text style={styles.value}>{profileData.phone_number || '—'}</Text>
-            </View>
-            <View style={styles.colItem}>
-              <Text style={styles.muted}>Email</Text>
-              <Text style={styles.value}>{profileData.email || '—'}</Text>
-            </View>
-          </View>
-          <View style={styles.twoCol}>
-            <View style={styles.colItem}><Text style={styles.muted}>Date of Birth</Text><Text style={styles.value}>{profileData.personal.dob}</Text></View>
-            <View style={styles.colItem}><Text style={styles.muted}>Location</Text><Text style={styles.value}>{profileData.personal.location}</Text></View>
-          </View>
-        </Card>
 
-        {/* Farm Details */}
-        <Card style={[styles.infoCard, styles.elevation]}>
-          <View style={styles.infoHeader}>
-            <View style={styles.headerIcon}><Icon name="map-marker-radius-outline" size={16} color={theme.colors.primary} /></View>
-            <Text style={styles.infoTitle}>Farm Details</Text>
-          </View>
-          <View style={styles.twoCol}>
-            <View style={styles.colItem}><Text style={styles.muted}>Primary Crop</Text><Text style={styles.value}>{profileData.farm.crop}</Text></View>
-            <View style={styles.colItem}><Text style={styles.muted}>Farm Area</Text><Text style={styles.value}>{profileData.farm.area_ha} hectares</Text></View>
-          </View>
-          <View style={styles.infoDivider} />
-          <View style={styles.twoCol}>
-            <View style={styles.colItem}><Text style={styles.muted}>Last Sowing</Text><Text style={styles.value}>{profileData.farm.last_sowing}</Text></View>
-            <View style={styles.colItem}><Text style={styles.muted}>Expected Yield</Text><Text style={styles.value}>{profileData.farm.expected_yield_tons} tons</Text></View>
-          </View>
-        </Card>
+                <View style={styles.divider} />
 
-        {/* Recent Yields */}
-        <Card style={[styles.infoCard, styles.elevation]}>
-          <View style={styles.infoHeader}>
-            <View style={styles.headerIcon}><Icon name="sprout" size={16} color={theme.colors.primary} /></View>
-            <Text style={styles.infoTitle}>Recent Yields</Text>
-          </View>
-          <Text style={[styles.muted, { marginBottom: theme.spacing.sm }]}>Last 3 seasons</Text>
-          {profileData.yields.map((y: any, idx: number) => (
-            <View key={idx} style={[styles.rowBetween, { marginBottom: 8 }]}>
-              <Text style={styles.value}>{y.season}</Text>
-              <Text style={styles.value}>{y.amount}</Text>
-            </View>
-          ))}
-        </Card>
+                <View style={styles.yieldSection}>
+                  <View style={styles.yieldHeader}>
+                    <Text style={styles.yieldTitle}>Recent Yields</Text>
+                    <View style={styles.yieldBadge}>
+                      <Text style={styles.yieldBadgeText}>Last 3 seasons</Text>
+                    </View>
+                  </View>
+                  
+                  {[
+                    { season: 'Spring 2024', yield: '5.8 tons', isHighlight: true },
+                    { season: 'Winter 2023', yield: '4.9 tons', isHighlight: false },
+                    { season: 'Spring 2023', yield: '5.2 tons', isHighlight: false },
+                  ].map((item, index) => (
+                    <View key={index} style={styles.yieldItem}>
+                      <Text style={styles.yieldSeason}>{item.season}</Text>
+                      <Text style={[
+                        styles.yieldValue, 
+                        item.isHighlight && { color: theme.colors.success }
+                      ]}>
+                        {item.yield}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </Card>
 
-        {/* Memberships & Training */}
-        <Card style={[styles.infoCard, styles.elevation]}>
-          <View style={styles.infoHeader}>
-            <View style={styles.headerIcon}><Icon name="badge-account-horizontal-outline" size={16} color={theme.colors.primary} /></View>
-            <Text style={styles.infoTitle}>Memberships & Training</Text>
-          </View>
-          <View style={{ gap: 16 }}>
-            <View>
-              <View style={styles.rowBetween}>
-                <Text style={styles.value}>Cooperative Member</Text>
-                <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.success }]}>{profileData.memberships.coop_status}</Text></View>
-              </View>
-              <Text style={[styles.muted, { marginTop: 4 }]}>{profileData.memberships.coop}</Text>
-            </View>
-            <View>
-              <View style={styles.rowBetween}>
-                <Text style={styles.value}>Training Completed</Text>
-                <View style={[styles.badgePill, { backgroundColor: theme.colors.warning + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.warning }]}>{profileData.memberships.training_score}</Text></View>
-              </View>
-              <Text style={[styles.muted, { marginTop: 4 }]}>{profileData.memberships.training}</Text>
-            </View>
-          </View>
-        </Card>
+              {/* My Land Card */}
+              <Card style={[styles.contentCard, styles.elevation]}>
+                <View style={styles.cardHeaderWithAction}>
+                  <View style={styles.cardHeader}>
+                    <Icon name="map" size={24} color={theme.colors.primary} />
+                    <Text style={styles.cardTitle}>My Land</Text>
+                  </View>
+                  <ButtonCustom 
+                    title="Add" 
+                    icon="plus" 
+                    onPress={() => {}} 
+                    variant="primary" 
+                    style={styles.addButton} 
+                  />
+                </View>
 
-        {/* Loan History */}
-        <Card style={[styles.infoCard, styles.elevation]}>
-          <View style={styles.infoHeader}>
-            <View style={styles.headerIcon}><Icon name="credit-card-check" size={16} color={theme.colors.primary} /></View>
-            <Text style={styles.infoTitle}>Loan History</Text>
+                <View style={styles.landList}>
+                  {[
+                    { id: '1', name: 'Plot 01', location: 'An Giang', status: 'verified', area: 1.2, cropType: 'Rice', carbonScore: 'B+' },
+                    { id: '2', name: 'Plot 02', location: 'Dong Thap', status: 'pending', area: 0.8, cropType: 'Rice', carbonScore: 'B' },
+                  ].map((land) => (
+                    <View key={land.id} style={styles.landCard}>
+                      <View style={styles.landHeader}>
+                        <View style={styles.landInfo}>
+                          <Text style={styles.landName}>{land.name}</Text>
+                          <Text style={styles.landLocation}>{land.location}</Text>
+                        </View>
+                        <View style={styles.landActions}>
+                          <View style={[
+                            styles.statusBadge,
+                            { backgroundColor: land.status === 'verified' ? theme.colors.success + '20' : theme.colors.warning + '20' }
+                          ]}>
+                            <Text style={[
+                              styles.statusText,
+                              { color: land.status === 'verified' ? theme.colors.success : theme.colors.warning }
+                            ]}>
+                              {land.status === 'verified' ? 'Verified' : 'Pending'}
+                            </Text>
+                          </View>
+                          <TouchableOpacity style={styles.editButton}>
+                            <Icon name="pencil" size={16} color={theme.colors.textLight} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      
+                      <View style={styles.landStats}>
+                        <View style={styles.landStatItem}>
+                          <Text style={styles.landStatLabel}>Area</Text>
+                          <Text style={styles.landStatValue}>{land.area} ha</Text>
+                        </View>
+                        <View style={styles.landStatItem}>
+                          <Text style={styles.landStatLabel}>Crop</Text>
+                          <Text style={styles.landStatValue}>{land.cropType}</Text>
+                        </View>
+                        <View style={styles.landStatItem}>
+                          <Text style={styles.landStatLabel}>Score</Text>
+                          <Text style={[styles.landStatValue, { color: theme.colors.success }]}>
+                            {land.carbonScore}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            </Animated.View>
+          )}
+
+          {activeTab === 'achievements' && (
+            <Animated.View entering={FadeInRight.duration(300).springify()}>
+              {/* Memberships Card */}
+              <Card style={[styles.contentCard, styles.elevation]}>
+                <View style={styles.cardHeader}>
+                  <Icon name="trophy" size={24} color={theme.colors.warning} />
+                  <Text style={styles.cardTitle}>Memberships & Achievements</Text>
+                </View>
+
+                <View style={styles.achievementsList}>
+                  <View style={styles.achievementItem}>
+                    <View style={styles.achievementIcon}>
+                      <LinearGradient
+                        colors={[theme.colors.primary + '20', theme.colors.primary + '10']}
+                        style={styles.achievementIconBg}
+                      >
+                        <Icon name="account-group" size={24} color={theme.colors.primary} />
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.achievementContent}>
+                      <Text style={styles.achievementTitle}>Cooperative Member</Text>
+                      <Text style={styles.achievementSubtitle}>{profileData.memberships.cooperative}</Text>
+                    </View>
+                    <View style={styles.achievementBadge}>
+                      <Text style={styles.achievementBadgeText}>Active</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.achievementItem}>
+                    <View style={styles.achievementIcon}>
+                      <LinearGradient
+                        colors={[theme.colors.success + '20', theme.colors.success + '10']}
+                        style={styles.achievementIconBg}
+                      >
+                        <Icon name="school" size={24} color={theme.colors.success} />
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.achievementContent}>
+                      <Text style={styles.achievementTitle}>Training Completed</Text>
+                      <Text style={styles.achievementSubtitle}>Agricultural Best Practices</Text>
+                    </View>
+                    <View style={[styles.achievementBadge, { backgroundColor: theme.colors.success + '20' }]}>
+                      <Icon name="trophy" size={12} color={theme.colors.success} />
+                      <Text style={[styles.achievementBadgeText, { color: theme.colors.success }]}>85%</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.achievementItem, styles.loanHistoryItem]}>
+                    <View style={styles.achievementIcon}>
+                      <LinearGradient
+                        colors={[theme.colors.info + '20', theme.colors.info + '10']}
+                        style={styles.achievementIconBg}
+                      >
+                        <Icon name="currency-usd" size={24} color={theme.colors.info} />
+                      </LinearGradient>
+                    </View>
+                    <View style={styles.achievementContent}>
+                      <Text style={styles.achievementTitle}>Loan History</Text>
+                      <Text style={styles.achievementSubtitle}>2 loans, 100% repaid on time</Text>
+                    </View>
+                    <View style={[styles.achievementBadge, { backgroundColor: theme.colors.success + '20' }]}>
+                      <Text style={[styles.achievementBadgeText, { color: theme.colors.success }]}>Excellent</Text>
+                    </View>
+                  </View>
+                </View>
+              </Card>
+
+              {/* Loan History Details */}
+              <Card style={[styles.contentCard, styles.elevation]}>
+                <View style={styles.cardHeader}>
+                  <Icon name="credit-card-check" size={24} color={theme.colors.info} />
+                  <Text style={styles.cardTitle}>Loan History Details</Text>
+                </View>
+
+                <View style={styles.loanList}>
+                  {profileData.memberships.loanHistory.map((loan: any, index: number) => (
+                    <View key={index} style={styles.loanItem}>
+                      <View style={styles.loanIcon}>
+                        <Icon name="check-circle" size={20} color={theme.colors.success} />
+                      </View>
+                      <View style={styles.loanContent}>
+                        <Text style={styles.loanPurpose}>{loan.purpose}</Text>
+                        <Text style={styles.loanDate}>{loan.date}</Text>
+                      </View>
+                      <View style={styles.loanAmount}>
+                        <Text style={styles.loanValue}>{loan.amount.toLocaleString()} ₫</Text>
+                        <Text style={[styles.loanStatus, { color: theme.colors.success }]}>
+                          {loan.status}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            </Animated.View>
+          )}
+
+          {/* Logout Button */}
+          <View style={styles.logoutContainer}>
+            <ButtonCustom
+              title="Logout"
+              variant="primary"
+              icon="logout-variant"
+              onPress={handleLogout}
+              style={styles.logoutButton}
+            />
           </View>
-          <View style={styles.rowBetween}>
-            <Text style={styles.value}>{profileData.loans.summary}</Text>
-            <View style={[styles.badgePill, { backgroundColor: theme.colors.success + '20' }]}><Text style={[styles.badgeText, { color: theme.colors.success }]}>{profileData.loans.rating}</Text></View>
-          </View>
-        </Card>
-        <View style={styles.logoutContainer}>
-          <ButtonCustom
-            title="Logout"
-            variant="primary"
-            icon="logout-variant"
-            onPress={handleLogout}
-            style={styles.logoutButton}
-          />
-        </View>
-      </ScrollView>
-        {/* Logout button */}
-       
-        <LoadingOverlay visible={loading} message="Updating profile..." />
+        </ScrollView>
+
+        {/* Share Modal */}
         <ModalCustom
           isModalVisible={shareModalVisible}
           setIsModalVisible={setShareModalVisible}
           title="Share Profile with Bank"
           isAction={false}
         >
-          <Text style={styles.muted}>Share your verified credit profile with partner banks for loan applications</Text>
-          <View style={{ marginTop: theme.spacing.md }}>
-            <Text style={styles.muted}>Share Code</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-              <View style={{ flex: 1, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: theme.colors.background }}>
-                <Text style={{ fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text }}>{shareCode}</Text>
+          <Text style={styles.modalDescription}>
+            Share your verified credit profile with partner banks for loan applications
+          </Text>
+          
+          <View style={styles.shareCodeSection}>
+            <Text style={styles.shareCodeLabel}>Share Code</Text>
+            <View style={styles.shareCodeContainer}>
+              <View style={styles.shareCodeInput}>
+                <Text style={styles.shareCodeText}>{shareCode}</Text>
               </View>
-              <TouchableOpacity onPress={copyShareCode} style={{ padding: 10, borderWidth: 1, borderColor: theme.colors.border, borderRadius: 10 }}> 
+              <TouchableOpacity onPress={copyShareCode} style={styles.copyButton}>
                 <Icon name="content-copy" size={18} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.muted, { marginTop: 6 }]}>This code expires in 24 hours and allows banks to view your credit profile</Text>
+            <Text style={styles.shareCodeNote}>
+              This code expires in 24 hours and allows banks to view your credit profile
+            </Text>
           </View>
-          <View style={{ marginTop: theme.spacing.md }}>
-            <Text style={[styles.infoTitle, { fontSize: theme.typography.fontSize.md }]}>What banks will see:</Text>
-            <View style={{ marginTop: 8, gap: 6 }}>
-              <Text style={styles.muted}>• Credit score and rating</Text>
-              <Text style={styles.muted}>• Verified crop data and yields</Text>
-              <Text style={styles.muted}>• Loan repayment history</Text>
-              <Text style={styles.muted}>• Cooperative membership status</Text>
+
+          <View style={styles.bankInfoSection}>
+            <Text style={styles.bankInfoTitle}>What banks will see:</Text>
+            <View style={styles.bankInfoList}>
+              <Text style={styles.bankInfoItem}>• Credit score and rating</Text>
+              <Text style={styles.bankInfoItem}>• Verified crop data and yields</Text>
+              <Text style={styles.bankInfoItem}>• Loan repayment history</Text>
+              <Text style={styles.bankInfoItem}>• Cooperative membership status</Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: theme.spacing.lg }}>
-            <ButtonCustom title="Cancel" variant="secondary" onPress={() => setShareModalVisible(false)} style={{ flex: 1 }} />
-            <ButtonCustom title="Done" onPress={() => setShareModalVisible(false)} style={{ flex: 1 }} />
+
+          <View style={styles.modalActions}>
+            <ButtonCustom 
+              title="Cancel" 
+              variant="secondary" 
+              onPress={() => setShareModalVisible(false)} 
+              style={styles.modalButton} 
+            />
+            <ButtonCustom 
+              title="Done" 
+              onPress={() => setShareModalVisible(false)} 
+              style={styles.modalButton} 
+            />
           </View>
         </ModalCustom>
       </LinearGradient>
@@ -424,52 +568,116 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.colors.white,
   },
   scrollContent: {
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl * 2,
   },
+  elevation: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  
+  // Profile Header Styles
   profileHeader: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 20,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
   },
-  elevation: { ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 }, android: { elevation: 2 } }) },
-  imageContainer: {
-    alignItems: 'center',
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: theme.spacing.lg,
   },
-  roleContainer: {
+  profileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '10',
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.lg,
-    marginTop: theme.spacing.md,
-  },
-  roleText: {
-    fontFamily: theme.typography.fontFamily.medium,
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
-    marginLeft: theme.spacing.xs,
-  },
-  statsSection: {
-    marginTop: theme.spacing.md,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  statCard: {
     flex: 1,
-    minWidth: '45%',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+  },
+  avatarContainer: {
+    marginRight: theme.spacing.md,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.xl,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  userBadgeRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.success + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifiedText: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  gradeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  gradeText: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.primary,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationText: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
   },
   statIcon: {
     width: 48,
@@ -481,72 +689,432 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: theme.typography.fontFamily.bold,
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: theme.typography.fontSize.lg,
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+  },
+
+  // Tabs Styles
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: theme.spacing.lg,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+  },
+  tabButtonActive: {
+    backgroundColor: theme.colors.white,
+    shadowColor: '#00000020',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  tabText: {
+    color: theme.colors.textLight,
     fontFamily: theme.typography.fontFamily.medium,
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textLight,
   },
-  formSection: {
+  tabTextActive: {
+    color: theme.colors.primary,
+  },
+
+  // Content Card Styles
+  contentCard: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 20,
     padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
   },
-  sectionHeader: {
+  cardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  cardHeaderWithAction: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
   },
-  sectionTitle: {
+  cardTitle: {
     fontFamily: theme.typography.fontFamily.bold,
     fontSize: theme.typography.fontSize.lg,
     color: theme.colors.text,
-    marginLeft: theme.spacing.sm,
   },
-  form: {
-    gap: 16,
+  addButton: {
+    height: 36,
+    paddingHorizontal: theme.spacing.md,
   },
-  editButton: {
-    padding: 8,
+
+  // Info Grid Styles
+  infoGrid: {
+    gap: theme.spacing.lg,
   },
-  cancelButton: {
-    padding: 8,
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
-  cancelText: {
+  infoIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+    marginBottom: 2,
+  },
+  infoValue: {
     fontFamily: theme.typography.fontFamily.medium,
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.error,
+    color: theme.colors.text,
   },
-  saveButton: {
+
+  // Farm Stats Styles
+  farmStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  farmStatItem: {
+    width: '48%',
+  },
+  farmStatLabel: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+    marginBottom: 4,
+  },
+  farmStatValue: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+  },
+  cropInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  cropDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: theme.spacing.lg,
+  },
+
+  // Yield Section Styles
+  yieldSection: {
+    gap: theme.spacing.md,
+  },
+  yieldHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  yieldTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+  },
+  yieldBadge: {
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  yieldBadgeText: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textLight,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  yieldItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+  },
+  yieldSeason: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  yieldValue: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text,
+  },
+
+  // Land List Styles
+  landList: {
+    gap: theme.spacing.md,
+  },
+  landCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+  },
+  landHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  landInfo: {
+    flex: 1,
+  },
+  landName: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  landLocation: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  landActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  editButton: {
+    padding: 6,
+  },
+  landStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  landStatItem: {
+    flex: 1,
+  },
+  landStatLabel: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.xs,
+    marginBottom: 2,
+  },
+  landStatValue: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text,
+  },
+
+  // Achievements Styles
+  achievementsList: {
+    gap: theme.spacing.lg,
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 16,
+  },
+  loanHistoryItem: {
+    backgroundColor: theme.colors.background,
+  },
+  achievementIcon: {},
+  achievementIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  achievementContent: {
+    flex: 1,
+  },
+  achievementTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  achievementSubtitle: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  achievementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  achievementBadgeText: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.primary,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+
+  // Loan List Styles
+  loanList: {
+    gap: theme.spacing.md,
+  },
+  loanItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  loanIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.success + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loanContent: {
+    flex: 1,
+  },
+  loanPurpose: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  loanDate: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  loanAmount: {
+    alignItems: 'flex-end',
+  },
+  loanValue: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  loanStatus: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+
+  // Modal Styles
+  modalDescription: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.md,
+    marginBottom: theme.spacing.lg,
+  },
+  shareCodeSection: {
+    marginBottom: theme.spacing.lg,
+  },
+  shareCodeLabel: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  shareCodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  shareCodeInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.background,
+  },
+  shareCodeText: {
+    fontFamily: theme.typography.fontFamily.medium,
+    color: theme.colors.text,
+    fontSize: theme.typography.fontSize.md,
+  },
+  copyButton: {
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+  },
+  shareCodeNote: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  bankInfoSection: {
+    marginBottom: theme.spacing.lg,
+  },
+  bankInfoTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  bankInfoList: {
+    gap: 6,
+  },
+  bankInfoItem: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+  },
+
+  // Logout Styles
+  logoutContainer: {
     marginTop: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
   },
-  logoutButton: { borderColor: theme.colors.error },
-  imagePicker: {
-    marginBottom: theme.spacing.md,
+  logoutButton: {
+    backgroundColor: theme.colors.error,
+    borderColor: theme.colors.error,
   },
-  infoCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
-  },
-  infoHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: theme.spacing.md },
-  headerIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.secondary + '25' },
-  infoTitle: { fontFamily: theme.typography.fontFamily.bold, color: theme.colors.text },
-  twoCol: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.sm },
-  colItem: { flex: 1, paddingRight: theme.spacing.lg },
-  muted: { color: theme.colors.textLight },
-  value: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium },
-  badgePill: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: theme.colors.background, borderRadius: 12, alignSelf: 'flex-start' },
-  badgeText: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.fontSize.sm },
-  inlineRow: { flexDirection: 'row', alignItems: 'center' },
-  infoDivider: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.sm },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  logoutContainer: { paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.lg, marginTop: theme.spacing.lg },
 });
 
-export default ProfileScreen; 
+export default ProfileScreen;
