@@ -39,8 +39,8 @@ export interface UserProfile {
 
 
 const baseUrl = Platform.select({
-    ios: 'https://agritrace.dzfullstack.com/api',
-    android: 'https://agritrace.dzfullstack.com/api',
+    ios: 'http://127.0.0.1:8000/api',
+    android: 'http://127.0.0.1:8000/api',
 });
 
 const api = axios.create({

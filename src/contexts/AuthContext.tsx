@@ -20,8 +20,8 @@ interface AuthContextData {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
-  userRole: 'farmer' | 'bank' | 'coop' | null;
-  signIn: (credentials: { email: string; password: string }) => Promise<void>;
+  userRole: 'farmer' | 'bank' | 'cooperative' | 'verifier' | 'government' | 'buyer' | null;
+  signIn: (credentials: { identifier: string; password: string; type: string }) => Promise<void>;
   signUp: (userData: {
     name: string;
     email: string;
@@ -62,34 +62,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const signIn = async (credentials: { email: string; password: string }) => {
+  const signIn = async (credentials: { identifier: string; password: string; type: string }) => {
     try {
       console.log('Sending login credentials:', credentials);
       const response = await api.post('/auth/login', credentials);
       console.log('Login response:', response.data);
-      const { user, token } = response.data;
+      const payload = response.data?.data ?? response.data;
+      const user = payload?.user ?? payload?.user_data ?? payload;
+      const token = payload?.token ?? payload?.access_token;
 
       // Ensure user data matches our interface
       const formattedUser: User = {
-        user_id: user.user_id,
-        role: user.role,
-        name: user.name,
-        dob: user.dob,
+        user_id: user.user_id ?? user.id,
+        role: user.role ?? user.user_type,
+        name: user.name ?? user.full_name,
+        dob: user.dob ?? user.date_of_birth,
         phone: user.phone,
         email: user.email,
-        gps_location: user.gps_location,
-        org_name: user.org_name,
+        gps_location: user.gps_location ?? (
+          user.gps_latitude != null && user.gps_longitude != null
+            ? `${user.gps_latitude},${user.gps_longitude}`
+            : ''
+        ),
+        org_name: user.org_name ?? user.organization_name,
         employee_id: user.employee_id,
         created_at: user.created_at,
       };
 
       await AsyncStorage.setItem('@AgriCred:user', JSON.stringify(formattedUser));
-      await AsyncStorage.setItem('@AgriCred:token', token);
-      await saveToken(token);
+      if (token) {
+        await AsyncStorage.setItem('@AgriCred:token', token);
+        await saveToken(token);
+      }
 
       setUser(formattedUser);
     } catch (error: any) {
-      console.error('Error signing in:', error.response?.data);
+      console.log('Error signing in:', error.response?.data);
       // Ném lỗi với định dạng chuẩn hóa
       if (error.response?.data) {
         throw {
@@ -133,11 +141,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Sending registration data:', formattedData);
       const response = await api.post('/auth/register', formattedData);
       console.log('Registration response:', response.data);
-      const { user, token } = response.data;
+      const payload = response.data?.data ?? response.data;
+      const user = payload?.user ?? payload;
+      const token = payload?.token ?? payload?.access_token;
 
       await AsyncStorage.setItem('@AgriCred:user', JSON.stringify(user));
-      await AsyncStorage.setItem('@AgriCred:token', token);
-      await saveToken(token);
+      if (token) {
+        await AsyncStorage.setItem('@AgriCred:token', token);
+        await saveToken(token);
+      }
 
       setUser(user);
     } catch (error: any) {
@@ -161,6 +173,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      try {
+        await api.post('/auth/logout');
+      } catch (e) {
+        // ignore network/logout errors
+      }
       await AsyncStorage.removeItem('@AgriCred:user');
       await AsyncStorage.removeItem('@AgriCred:token');
       setUser(null);
@@ -170,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const userRole = user?.role as 'farmer' | 'bank' | 'coop' | null;
+  const userRole = (user?.role ?? null) as 'farmer' | 'bank' | 'cooperative' | 'verifier' | 'government' | 'buyer' | null;
 
   return (
     <AuthContext.Provider

@@ -342,18 +342,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       <Text style={styles.stepSubtitle}>Set up your password and location</Text>
 
       <View style={styles.inputGroup}>
-        {formData.role === 'farmer' && (
-          <LocationPicker
-            label="Farm Location"
-            value={selectedLocation}
-            onChange={location => {
-              setSelectedLocation(location);
-              updateFormData('gps_location', `${location.latitude},${location.longitude}`);
-            }}
-            error={errors.gps_location}
-            required
-          />
-        )}
+        <LocationPicker
+          label={formData.role === 'farmer' ? 'Farm Location' : 'Organization Location'}
+          value={selectedLocation}
+          onChange={location => {
+            setSelectedLocation(location);
+            updateFormData('gps_location', `${location.latitude},${location.longitude}`);
+          }}
+          error={errors.gps_location}
+          required
+        />
 
         <InputCustom
           label="Password"

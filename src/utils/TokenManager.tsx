@@ -20,9 +20,10 @@ export const checkToken = async (navigation: NavigationProp<any>) => {
         const token = await getToken();
         if (token) {
             const res = await api.get('/check-login');
-            if (res.data.status) {
-                if (res.data.token && res.data.token !== null) {
-                    await saveToken(res.data.token);
+            if (res.data?.status) {
+                const newToken = res.data?.token ?? res.data?.data?.token;
+                if (newToken && newToken !== null) {
+                    await saveToken(newToken);
                 }
                 return true;
             } else {

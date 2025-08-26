@@ -33,11 +33,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { signIn } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ identifier?: string }>({});
+  const [errors, setErrors] = useState<{ identifier?: string, password?: string }>({});
   const [isPhoneNumber, setIsPhoneNumber] = useState(false);
-
+  const [password, setPassword] = useState('');
   const validateForm = () => {
-    const newErrors: { identifier?: string } = {};
+    const newErrors: { identifier?: string, password?: string } = {};
 
     if (!identifier) {
       newErrors.identifier = 'Email or phone number is required';
@@ -49,6 +49,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       if (!/\S+@\S+\.\S+/.test(identifier)) {
         newErrors.identifier = 'Please enter a valid email';
       }
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required';
     }
 
     setErrors(newErrors);
@@ -72,31 +76,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       //   identifier: identifier,
       //   type: isPhoneNumber ? 'phone' : 'email'
       // });
-
       // Navigate to OTP verification screen
-      navigation.navigate('OTPVerification', {
-        identifier: identifier,
-        type: isPhoneNumber ? 'phone' : 'email'
-      });
+      // navigation.navigate('OTPVerification', {
+      //   identifier: identifier,
+      //   type: isPhoneNumber ? 'phone' : 'email'
+      // });
+      await signIn({ identifier: identifier, password: password , type: isPhoneNumber ? 'phone' : 'email'});
+      navigation.replace('MainTabs');
+
+      // console.log('Login response:', response);
     } catch (error: any) {
       console.log('Login error:', error);
-
-      if (error.errors) {
-        setErrors({
-          identifier: error.errors.identifier?.[0]
-        });
-      } else {
-        const errorMessage = error.message || 'An error occurred during login';
-        setErrors({
-          identifier: errorMessage
-        });
-
-        Alert.alert(
-          'Login Failed',
-          errorMessage,
-          [{ text: 'OK' }]
-        );
-      }
+// Xử lý lỗi validation từ API
+    if (error.errors) {
+      setErrors({
+        identifier: error.errors.identifier?.[0],
+        password: error.errors.password?.[0]
+      });
+    } else {
+      // Xử lý các lỗi khác (network, timeout...)
+      setErrors({
+        identifier: error.message
+      });
+    }
     } finally {
       setLoading(false);
     }
@@ -220,12 +222,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
                 leftIcon={isPhoneNumber ? "phone-outline" : "email-outline"}
                 containerStyle={styles.input}
               />
+               <InputCustom
+                label={"Password"}
+                placeholder={"Enter your password"}
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                }}
+                keyboardType={"default"}
+                autoCapitalize="none"
+                error={errors.password}
+                secureTextEntry={true}
+                required
+                leftIcon={"lock-outline"}
+                containerStyle={styles.input}
+              />
 
               <ButtonCustom
-                title="Send Verification Code"
+                title="Login"
                 onPress={handleLogin}
                 style={styles.loginButton}
-                icon="send"
+                icon="login"
               />
 
               {/* Social Login */}
