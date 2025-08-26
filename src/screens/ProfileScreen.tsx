@@ -104,7 +104,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <LinearGradient 
         colors={[theme.colors.primary + '10', theme.colors.white]} 
-        style={{ flex: 1 }}
+        style={styles.backgroundContainer}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -516,9 +516,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.white,
   },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
   scrollContent: {
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing.xl * 2,
+    marginTop: theme.spacing.xxl,
   },
   elevation: {
     ...Platform.select({

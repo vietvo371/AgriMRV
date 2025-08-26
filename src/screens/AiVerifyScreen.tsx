@@ -148,9 +148,9 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={[theme.colors.primary + '08', theme.colors.white]}
-        style={styles.gradient}
-      >
+          colors={[theme.colors.primary + '15', theme.colors.white]}
+          style={StyleSheet.absoluteFill}
+        />
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -390,7 +390,6 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             </View>
           </Animated.View>
         </ScrollView>
-      </LinearGradient>
     </SafeAreaView>
   );
 };

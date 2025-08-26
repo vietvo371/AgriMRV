@@ -30,15 +30,15 @@ interface RegisterScreenProps {
 const { width } = Dimensions.get('window');
 
 const roleOptions = [
-  { 
-    label: 'Farmer', 
+  {
+    label: 'Farmer',
     value: 'farmer',
     icon: 'account',
     description: 'Individual farmer',
     color: theme.colors.success,
   },
-  { 
-    label: 'Bank', 
+  {
+    label: 'Bank',
     value: 'bank',
     icon: 'bank',
     description: 'Financial institution ',
@@ -48,7 +48,7 @@ const roleOptions = [
 
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const { signUp } = useAuth();
-  
+
   interface Location {
     latitude: number;
     longitude: number;
@@ -140,7 +140,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       } else if (formData.org_name.length < 3) {
         newErrors.org_name = 'Organization name must be at least 3 characters';
       }
-      
+
       if (!formData.employee_id) {
         newErrors.employee_id = 'Employee ID is required';
       } else if (!/^[A-Z0-9-]{4,}$/.test(formData.employee_id)) {
@@ -157,7 +157,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     if (!isValid) {
       return;
     }
-    
+
     setLoading(true);
     try {
       const registrationData = {
@@ -168,7 +168,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       navigation.replace('Login');
     } catch (error: any) {
       console.error('Registration error:', error);
-      
+
       if (error.errors) {
         const newErrors: Record<string, string> = {};
         Object.keys(error.errors).forEach(field => {
@@ -205,13 +205,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   };
 
   const renderRoleSelector = () => (
-    <Animated.View 
+    <Animated.View
       style={styles.roleSelectorContainer}
       entering={FadeInDown.duration(500).springify()}
     >
       <Text style={styles.roleTitle}>Choose Your Role</Text>
       <Text style={styles.roleSubtitle}>Select the option that best describes you</Text>
-      
+
       <View style={styles.roleGrid}>
         {roleOptions.map((option, index) => (
           <Animated.View
@@ -249,7 +249,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   );
 
   const renderBasicInfo = () => (
-    <Animated.View 
+    <Animated.View
       style={styles.stepContainer}
       entering={FadeInDown.duration(500).springify()}
     >
@@ -334,7 +334,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   );
 
   const renderSecurityInfo = () => (
-    <Animated.View 
+    <Animated.View
       style={styles.stepContainer}
       entering={FadeInDown.duration(500).springify()}
     >
@@ -388,10 +388,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           <Text style={styles.passwordStrengthLabel}>Password Requirements:</Text>
           <View style={styles.requirementsList}>
             <View style={styles.requirement}>
-              <Icon 
-                name={formData.password.length >= 8 ? 'check-circle' : 'circle-outline'} 
-                size={16} 
-                color={formData.password.length >= 8 ? theme.colors.success : theme.colors.textLight} 
+              <Icon
+                name={formData.password.length >= 8 ? 'check-circle' : 'circle-outline'}
+                size={16}
+                color={formData.password.length >= 8 ? theme.colors.success : theme.colors.textLight}
               />
               <Text style={[
                 styles.requirementText,
@@ -401,10 +401,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               </Text>
             </View>
             <View style={styles.requirement}>
-              <Icon 
-                name={/(?=.*[a-z])(?=.*[A-Z])/.test(formData.password) ? 'check-circle' : 'circle-outline'} 
-                size={16} 
-                color={/(?=.*[a-z])(?=.*[A-Z])/.test(formData.password) ? theme.colors.success : theme.colors.textLight} 
+              <Icon
+                name={/(?=.*[a-z])(?=.*[A-Z])/.test(formData.password) ? 'check-circle' : 'circle-outline'}
+                size={16}
+                color={/(?=.*[a-z])(?=.*[A-Z])/.test(formData.password) ? theme.colors.success : theme.colors.textLight}
               />
               <Text style={[
                 styles.requirementText,
@@ -414,10 +414,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               </Text>
             </View>
             <View style={styles.requirement}>
-              <Icon 
-                name={/(?=.*\d)/.test(formData.password) ? 'check-circle' : 'circle-outline'} 
-                size={16} 
-                color={/(?=.*\d)/.test(formData.password) ? theme.colors.success : theme.colors.textLight} 
+              <Icon
+                name={/(?=.*\d)/.test(formData.password) ? 'check-circle' : 'circle-outline'}
+                size={16}
+                color={/(?=.*\d)/.test(formData.password) ? theme.colors.success : theme.colors.textLight}
               />
               <Text style={[
                 styles.requirementText,
@@ -447,116 +447,118 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={[theme.colors.primary + '10', theme.colors.white]}
-        style={styles.gradient}
-      >
-        <Header
-          title=""
-          onBack={() => navigation.goBack()}
-          containerStyle={styles.header}
-        />
-
-        {/* Progress Indicator */}
-        <Animated.View 
-          style={styles.progressContainer}
-          entering={FadeInUp.duration(500).springify()}
+      <View style={styles.backgroundContainer}>
+        <LinearGradient
+          colors={[theme.colors.primary + '10', theme.colors.white]}
+          style={styles.gradient}
         >
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressSubtitle}> Creat Account Step {currentStep} of 3</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <LinearGradient
-              colors={[theme.colors.primary, theme.colors.secondary]}
-              style={[
-                styles.progressFill,
-                { width: `${(currentStep / 3) * 100}%` }
-              ]}
-            />
-          </View>
-          <View style={styles.stepIndicators}>
-            {[1, 2, 3].map((step) => (
-              <View
-                key={step}
+          <Header
+            title=""
+            onBack={() => navigation.goBack()}
+            containerStyle={styles.header}
+          />
+
+          {/* Progress Indicator */}
+          <Animated.View
+            style={styles.progressContainer}
+            entering={FadeInUp.duration(500).springify()}
+          >
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressSubtitle}> Creat Account Step {currentStep} of 3</Text>
+            </View>
+            <View style={styles.progressBar}>
+              <LinearGradient
+                colors={[theme.colors.primary, theme.colors.secondary]}
                 style={[
-                  styles.stepIndicator,
-                  {
-                    backgroundColor: step <= currentStep 
-                      ? theme.colors.primary 
-                      : theme.colors.border
-                  }
+                  styles.progressFill,
+                  { width: `${(currentStep / 3) * 100}%` }
                 ]}
-              >
-                <Text style={[
-                  styles.stepIndicatorText,
-                  { color: step <= currentStep ? theme.colors.white : theme.colors.textLight }
-                ]}>
-                  {step}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </Animated.View>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoidingView}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.content}>
-              <View style={styles.formContainer}>
-                {renderStepContent()}
-              </View>
+              />
             </View>
-          </ScrollView>
-
-          {/* Action Buttons */}
-          <Animated.View 
-            style={styles.actionContainer}
-            entering={FadeInUp.duration(500).delay(300).springify()}
-          >
-            <View style={styles.buttonRow}>
-              {currentStep > 1 && (
-                <ButtonCustom
-                  title="Previous"
-                  onPress={prevStep}
-                  style={styles.actionButton}
-                />
-              )}
-              
-              {currentStep < 3 ? (
-                <ButtonCustom
-                  title="Next"
-                  onPress={nextStep}
-                  style={styles.actionButton}
-                  icon="arrow-right"
-                />
-              ) : (
-                <ButtonCustom
-                  title="Create Account"
-                  onPress={handleRegister}
-                  style={styles.actionButton}
-                  icon="account-plus"
-                />
-              )}
+            <View style={styles.stepIndicators}>
+              {[1, 2, 3].map((step) => (
+                <View
+                  key={step}
+                  style={[
+                    styles.stepIndicator,
+                    {
+                      backgroundColor: step <= currentStep
+                        ? theme.colors.primary
+                        : theme.colors.border
+                    }
+                  ]}
+                >
+                  <Text style={[
+                    styles.stepIndicatorText,
+                    { color: step <= currentStep ? theme.colors.white : theme.colors.textLight }
+                  ]}>
+                    {step}
+                  </Text>
+                </View>
+              ))}
             </View>
-
-            {/* Sign In Link */}
-            <TouchableOpacity
-              style={styles.signInLink}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.signInText}>
-                Already have an account? <Text style={styles.signInTextBold}>Sign In</Text>
-              </Text>
-            </TouchableOpacity>
           </Animated.View>
-        </KeyboardAvoidingView>
-      </LinearGradient>
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.keyboardAvoidingView}
+          >
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.content}>
+                <View style={styles.formContainer}>
+                  {renderStepContent()}
+                </View>
+              </View>
+            </ScrollView>
+
+            {/* Action Buttons */}
+            <Animated.View
+              style={styles.actionContainer}
+              entering={FadeInUp.duration(500).delay(300).springify()}
+            >
+              <View style={styles.buttonRow}>
+                {currentStep > 1 && (
+                  <ButtonCustom
+                    title="Previous"
+                    onPress={prevStep}
+                    style={styles.actionButton}
+                  />
+                )}
+
+                {currentStep < 3 ? (
+                  <ButtonCustom
+                    title="Next"
+                    onPress={nextStep}
+                    style={styles.actionButton}
+                    icon="arrow-right"
+                  />
+                ) : (
+                  <ButtonCustom
+                    title="Create Account"
+                    onPress={handleRegister}
+                    style={styles.actionButton}
+                    icon="account-plus"
+                  />
+                )}
+              </View>
+
+              {/* Sign In Link */}
+              <TouchableOpacity
+                style={styles.signInLink}
+                onPress={() => navigation.navigate('Login')}
+              >
+                <Text style={styles.signInText}>
+                  Already have an account? <Text style={styles.signInTextBold}>Sign In</Text>
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </LinearGradient>
+      </View>
       <LoadingOverlay visible={loading} message="Creating your account..." />
     </SafeAreaView>
   );
@@ -567,13 +569,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.white,
   },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
   gradient: {
     flex: 1,
   },
   header: {
     backgroundColor: 'transparent',
+    marginTop: theme.spacing.xxl,
   },
-  
+
   // Progress Styles
   progressContainer: {
     paddingHorizontal: theme.spacing.lg,

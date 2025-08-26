@@ -42,32 +42,32 @@ const calculateScores = () => {
   const riceScore = mockFarmerData.rice.area * 0.85 * 1.1; // 1.683 tCO2
   const agroScore = mockFarmerData.agroforestry.area * mockFarmerData.agroforestry.treeDensity * 1.1 * 0.02; // 2.31 tCO2
   const CP = (riceScore * 0.6) + (agroScore * 0.4); // 1.934 tCO2
-  
+
   // Convert to 100-point scale
   const CPScore = Math.round((CP / 3.0) * 100); // 65
-  
+
   // MRV Reliability calculation
-  const aiConf = (mockFarmerData.aiResults.avgAuthenticity * 0.5) + 
-                 (mockFarmerData.aiResults.avgHealth * 0.3) + 
-                 (mockFarmerData.aiResults.practiceMatch * 0.2); // 88.1
+  const aiConf = (mockFarmerData.aiResults.avgAuthenticity * 0.5) +
+    (mockFarmerData.aiResults.avgHealth * 0.3) +
+    (mockFarmerData.aiResults.practiceMatch * 0.2); // 88.1
   const verHistory = 85; // based on history
   const docQuality = 82; // document quality
   const consistency = 78; // consistency
-  
+
   const MR = Math.round((aiConf * 0.4) + (verHistory * 0.3) + (docQuality * 0.2) + (consistency * 0.1)); // 85
-  
+
   // Final score
   const finalScore = Math.round((CPScore * 0.7) + (MR * 0.3)); // 71
-  
+
   return { CP: CPScore, MR, finalScore };
 };
 
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const [selectedPlot, setSelectedPlot] = useState(1);
   const [loading, setLoading] = useState(false);
-  
+
   const scores = calculateScores();
-  
+
   const handleCreateRecord = () => {
     navigation.navigate('CreateRecord', { recordId: '1' });
   };
@@ -82,9 +82,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={[theme.colors.secondary + '30', theme.colors.white]}
-        style={styles.gradient}>
+      <View style={styles.backgroundContainer}>
+        <LinearGradient
+          colors={[theme.colors.primary + '15', theme.colors.white]}
+          style={StyleSheet.absoluteFill}
+        />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           {/* Header */}
           <View style={styles.recordsHeaderRow}>
@@ -147,11 +149,11 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                 <Text style={styles.plotCountText}>2 plots</Text>
               </View>
             </View>
-            
+
             <View style={styles.plotsList}>
               {/* Main Plot */}
-              <TouchableOpacity 
-                style={styles.plotCard} 
+              <TouchableOpacity
+                style={styles.plotCard}
                 onPress={() => navigation.navigate('RecordDetail', { recordId: 'main-plot-1' })}
               >
                 <View style={styles.plotCardContent}>
@@ -181,8 +183,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
               </TouchableOpacity>
 
               {/* Secondary Plot */}
-              <TouchableOpacity 
-                style={styles.plotCard} 
+              <TouchableOpacity
+                style={styles.plotCard}
                 onPress={() => navigation.navigate('RecordDetail', { recordId: 'secondary-plot-2' })}
               >
                 <View style={styles.plotCardContent}>
@@ -213,7 +215,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </View>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
@@ -221,7 +223,10 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: theme.colors.white,
+  },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
   },
   viewAllText: {
     fontFamily: theme.typography.fontFamily.medium,
@@ -253,6 +258,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   scrollContent: {
+    marginTop: theme.spacing.xxl,
     padding: theme.spacing.lg,
   },
   recordsHeaderRow: {

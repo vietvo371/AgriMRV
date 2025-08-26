@@ -153,10 +153,11 @@ const FinanceScreen: React.FC<Props> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient 
-        colors={[theme.colors.primary + '08', theme.colors.white]} 
-        style={{ flex: 1 }}
-      >
+      <View style={styles.backgroundContainer}>
+        <LinearGradient
+          colors={[theme.colors.primary + '15', theme.colors.white]}
+          style={StyleSheet.absoluteFill}
+        />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -635,7 +636,7 @@ const FinanceScreen: React.FC<Props> = ({
             </Animated.View>
           )}
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 };
@@ -645,7 +646,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.white,
   },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
   scrollContent: {
+    marginTop: theme.spacing.xxl,
     padding: theme.spacing.lg,
     paddingBottom: theme.spacing.xl * 2,
   },

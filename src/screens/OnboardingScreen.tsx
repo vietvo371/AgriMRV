@@ -78,11 +78,20 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
     }
   };
 
+  // Ensure activeIndex is always within bounds
+  const safeActiveIndex = Math.max(0, Math.min(activeIndex, onboardingData.length - 1));
+  const currentItem = onboardingData[safeActiveIndex];
+
+  // Safety check - if no item is available, use the first one
+  if (!currentItem) {
+    return null; // or a loading state
+  }
+
   return (
     <View style={styles.container}>
       <Animated.Image
-        key={onboardingData[activeIndex].image}
-        source={onboardingData[activeIndex].image}
+        key={currentItem.image}
+        source={currentItem.image}
         style={StyleSheet.absoluteFill}
         resizeMode="cover"
         entering={FadeIn.duration(1000)}
@@ -100,7 +109,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }) => {
             <Marquee
               items={onboardingData}
               renderItem={({ item }) => <EventCard event={item} />}
-              onIndexChange={setActiveIndex}
+              onIndexChange={(index) => {
+                // Ensure the index stays within bounds
+                const safeIndex = Math.max(0, Math.min(index, onboardingData.length - 1));
+                setActiveIndex(safeIndex);
+              }}
             />
           </Animated.View>
 

@@ -296,7 +296,7 @@ const CreditDashboardScreen: React.FC<Props> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient  colors={[theme.colors.primary + '08', theme.colors.white]}  style={{ flex: 1 }}>
+      <LinearGradient  colors={[theme.colors.primary + '08', theme.colors.white]}  style={styles.backgroundContainer}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
@@ -374,7 +374,7 @@ const CreditDashboardScreen: React.FC<Props> = ({
                 <Text style={styles.chartSubtitle}>Your credit score progression over time</Text>
                 <LineChart
                   data={historicalScores}
-                  width={(width || 350) - 40}
+                  width={Dimensions.get('window').width - 40}
                   height={190}
                   chartConfig={{
                     backgroundColor: '#ffffff',
@@ -387,7 +387,7 @@ const CreditDashboardScreen: React.FC<Props> = ({
                     fillShadowGradientOpacity: 0.2,
                     propsForDots: {
                       r: '4',
-                      strokeWidth: '2',
+                      // strokeWidth: '2',
                       stroke: theme.colors?.primary || '#007AFF',
                     },
                     propsForBackgroundLines: {
@@ -599,8 +599,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.white,
   },
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
   scrollContent: {
     flexGrow: 1,
+    marginTop: theme.spacing.xxl,
   },
   content: {
     padding: theme.spacing.lg,
