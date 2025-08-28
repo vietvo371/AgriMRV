@@ -9,6 +9,7 @@ import {
   Platform,
   TouchableOpacity,
   Dimensions,
+  Linking,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -18,7 +19,7 @@ import Badge from '../component/Badge';
 import ReviewCard from '../component/ReviewCard';
 import ButtonCustom from '../component/ButtonCustom';
 import LoadingOverlay from '../component/LoadingOverlay';
-import api from '../utils/Api';
+import { dashboardApi } from '../utils/Api';
 import { deriveRecordDetail } from '../utils/mockData';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
@@ -34,7 +35,7 @@ interface PlotDetailsResponse {
     status: 'verified' | 'pending' | 'processing';
     mrvData: {
       plotBoundaries: {
-        coordinates: Array<{lat: number, lng: number}>;
+        coordinates: Array<{ lat: number, lng: number }>;
         verified: boolean;
         area: number;
       };
@@ -72,6 +73,7 @@ interface PlotDetailsResponse {
       phone: string;
       email: string;
       cooperative: string;
+      avatar: string;
     };
   };
   message: string;
@@ -90,55 +92,93 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
     return date.toISOString().split('T')[0];
   };
   useEffect(() => {
-    setLoading(true);
-    // Mock data for farming plot based on backend structure
-    const mockPlotData: PlotDetailsResponse['data'] = {
-      id: recordId,
-      plot_name: recordId === 'main-plot-1' ? 'Main Plot - An Giang' : 'Secondary Plot - Dong Thap',
-      location: recordId === 'main-plot-1' ? 'An Giang Province' : 'Dong Thap Province',
-      status: recordId === 'main-plot-1' ? 'verified' : 'pending',
-      mrvData: {
-        plotBoundaries: {
-          coordinates: [{lat: 10.8231, lng: 106.6297}],
-          verified: recordId === 'main-plot-1',
-          area: recordId === 'main-plot-1' ? 2.5 : 2.0
-        },
-        ricePractices: {
-          area: recordId === 'main-plot-1' ? 1.8 : 2.0,
-          awdCycle: "7 days wet, 3 days dry",
-          strawManagement: "Incorporated into soil",
-          sowingDate: "2024-01-15"
-        },
-        agroforestrySystem: {
-          area: recordId === 'main-plot-1' ? 0.7 : 0.0,
-          treeDensity: 150,
-          species: ["Coconut", "Mango"],
-          intercropping: ["Vegetables", "Herbs"]
-        },
-        evidencePhotos: [
-          {id: 1, type: "rice_field", url: "mock_image_1.jpg", uploadDate: "2024-02-01"},
-          {id: 2, type: "tree_coverage", url: "mock_image_2.jpg", uploadDate: "2024-02-01"}
-        ],
-        mrvScores: {
-          carbonPerformance: 71,
-          mrvReliability: 75,
-          grade: "B"
-        },
-        blockchainAnchor: {
-          hash: "0x1a2b3c4d5e6f...",
-          timestamp: "2024-02-01T10:30:00Z",
-          reportUrl: "https://agrirv.com/report/abc123"
-        }
-      },
-      farmer: {
-        name: 'Nguyen Van A',
-        phone: '+84 123 456 789',
-        email: 'nguyenvana@example.com',
-        cooperative: 'An Giang Rice Cooperative'
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await dashboardApi.getLandPlotDetail(recordId);
+        if (!mounted) return;
+
+        // Map backend response to UI structure expected by this screen
+        const mapped: PlotDetailsResponse['data'] = {
+          id: String(data?.id ?? recordId),
+          plot_name: data?.plot_name || data?.name || `Plot #${recordId}`,
+          location: data?.location || data?.address || 'Unknown',
+          status: (data?.status || 'pending'),
+          mrvData: data?.mrvData ? data.mrvData : {
+            plotBoundaries: {
+              coordinates: Array.isArray(data?.coordinates) ? data.coordinates : [
+                { lat: Number(data?.gps_latitude || 0) || 0, lng: Number(data?.gps_longitude || 0) || 0 }
+              ],
+              verified: Boolean(data?.plot_verified ?? false),
+              area: Number(
+                data?.area_hectares ?? data?.total_area ?? 0
+              ) || 0,
+            },
+            ricePractices: {
+              area: Number(data?.rice_area ?? 0) || 0,
+              awdCycle: data?.awdCycle || data?.awd_cycles_per_season || data?.water_management_method || 'AWD',
+              strawManagement: data?.straw_management || 'Unknown',
+              sowingDate: data?.rice_sowing_date || data?.sowingDate || '',
+            },
+            agroforestrySystem: {
+              area: Number(data?.agroforestry_area ?? 0) || 0,
+              treeDensity: Number(data?.tree_density_per_hectare ?? data?.treeDensity ?? 0) || 0,
+              species: Array.isArray(data?.tree_species) ? data.tree_species : (Array.isArray(data?.species) ? data.species : []),
+              intercropping: Array.isArray(data?.intercrop_species) ? data.intercrop_species : (Array.isArray(data?.intercropping) ? data.intercropping : []),
+            },
+            evidencePhotos: Array.isArray(data?.evidencePhotos)
+              ? data.evidencePhotos
+              : Array.isArray(data?.evidence_files)
+                ? data.evidence_files.map((f: any, idx: number) => ({
+                  id: f.id ?? idx,
+                  type: f.file_type || 'photo',
+                  url: f.file_url || '',
+                  uploadDate: f.capture_timestamp || '',
+                }))
+                : [],
+            mrvScores: data?.mrvScores || {
+              carbonPerformance: Number(data?.carbon_performance_score ?? 0) || 0,
+              mrvReliability: Number(data?.mrv_reliability_score ?? 0) || 0,
+              grade: data?.grade || 'N/A',
+            },
+            blockchainAnchor: data?.blockchainAnchor || {
+              hash: data?.transaction_hash || '',
+              timestamp: data?.anchor_timestamp || '',
+              reportUrl: data?.verification_url || '',
+            },
+          },
+          farmer: data?.farmer || {
+            name: data?.farmer_name || data?.user_full_name || 'Unknown',
+            phone: data?.farmer_phone || data?.user_phone || '',
+            email: data?.farmer_email || data?.user_email || '',
+            cooperative: data?.cooperative_name || data?.organization_name || '',
+          },
+        };
+
+        setPlot(mapped);
+      } catch (e) {
+        // fallback minimal state to avoid blank screen
+        setPlot({
+          id: String(recordId),
+          plot_name: `Plot #${recordId}`,
+          location: 'Unknown',
+          status: 'pending',
+          mrvData: {
+            plotBoundaries: { coordinates: [{ lat: 0, lng: 0 }], verified: false, area: 0 },
+            ricePractices: { area: 0, awdCycle: 'AWD', strawManagement: '', sowingDate: '' },
+            agroforestrySystem: { area: 0, treeDensity: 0, species: [], intercropping: [] },
+            evidencePhotos: [],
+            mrvScores: { carbonPerformance: 0, mrvReliability: 0, grade: 'N/A' },
+            blockchainAnchor: { hash: '', timestamp: '', reportUrl: '' },
+          },
+          farmer: { name: 'Unknown', phone: '', email: '', cooperative: '' },
+        });
+      } finally {
+        setLoading(false);
       }
-    };
-    setPlot(mockPlotData);
-    setLoading(false);
+    })();
+    return () => { mounted = false; };
   }, [recordId]);
 
   console.log(recordId);
@@ -181,285 +221,285 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
     <SafeAreaView style={styles.container}>
       <Header title="Record Details" onBack={() => navigation.goBack()} />
       <LinearGradient colors={[theme.colors.secondary + '30', theme.colors.white]} style={{ flex: 1 }}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Section */}
-        <View style={styles.headerCard}>
-          <View style={styles.headerContent}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.productName}>{plot.plot_name}</Text>
-              <View style={styles.categoryContainer}>
-                <Icon name="map-marker" size={16} color={theme.colors.textLight} />
-                <Text style={styles.category}>{plot.location}</Text>
-              </View>
-            </View>
-            <Badge text={plot.status?.toUpperCase() || 'PENDING'} variant={plot.status === 'verified' ? 'success' : 'warning'} />
-          </View>
-        </View>
-
-        {/* MRV Verification Banner */}
-        {plot.status === 'verified' && (
-          <View style={[styles.verificationBanner, styles.elevation]}>
-            <View style={styles.verificationRow}>
-              <Icon name="shield-check" size={22} color={theme.colors.success} />
-              <Text style={styles.verificationTitle}>MRV Verification Complete</Text>
-            </View>
-            <Text style={styles.verificationText}>
-              This plot has been verified by our AI system and contributes to your carbon credit score.
-            </Text>
-          </View>
-        )}
-
-        {/* Plot Information */}
-        <View style={[styles.section, styles.elevation]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="information" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Plot Information</Text>
-          </View>
-          
-          {/* Area Overview */}
-          <View style={styles.areaOverview}>
-            <View style={styles.areaCard}>
-              <Icon name="ruler-square" size={24} color={theme.colors.primary} />
-              <Text style={styles.areaValue}>{plot.mrvData.plotBoundaries.area} ha</Text>
-              <Text style={styles.areaLabel}>Total Area</Text>
-            </View>
-            <View style={styles.areaCard}>
-              <Icon name="rice" size={24} color={theme.colors.secondary} />
-              <Text style={styles.areaValue}>{plot.mrvData.ricePractices.area} ha</Text>
-              <Text style={styles.areaLabel}>Rice Area</Text>
-            </View>
-            <View style={styles.areaCard}>
-              <Icon name="tree" size={24} color={theme.colors.success} />
-              <Text style={styles.areaValue}>{plot.mrvData.agroforestrySystem.area} ha</Text>
-              <Text style={styles.areaLabel}>Agroforestry</Text>
-            </View>
-          </View>
-
-          {/* Practice Details */}
-          <View style={styles.practiceDetails}>
-            <View style={styles.practiceRow}>
-              <View style={styles.practiceIcon}>
-                <Icon name="water" size={20} color={theme.colors.info} />
-              </View>
-              <View style={styles.practiceContent}>
-                <Text style={styles.practiceLabel}>AWD Cycle</Text>
-                <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.awdCycle}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.practiceRow}>
-              <View style={styles.practiceIcon}>
-                <Icon name="leaf" size={20} color={theme.colors.warning} />
-              </View>
-              <View style={styles.practiceContent}>
-                <Text style={styles.practiceLabel}>Straw Management</Text>
-                <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.strawManagement}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.practiceRow}>
-              <View style={styles.practiceIcon}>
-                <Icon name="calendar-blank" size={20} color={theme.colors.accent} />
-              </View>
-              <View style={styles.practiceContent}>
-                <Text style={styles.practiceLabel}>Sowing Date</Text>
-                <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.sowingDate}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Agroforestry Details */}
-          {plot.mrvData.agroforestrySystem.area > 0 && (
-            <View style={styles.agroforestrySection}>
-              <Text style={styles.subsectionTitle}>Agroforestry Details</Text>
-              <View style={styles.agroforestryGrid}>
-                <View style={styles.agroforestryItem}>
-                  <Icon name="tree" size={16} color={theme.colors.success} />
-                  <Text style={styles.agroforestryLabel}>Tree Density</Text>
-                  <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.treeDensity} trees/ha</Text>
-                </View>
-                <View style={styles.agroforestryItem}>
-                  <Icon name="sprout" size={16} color={theme.colors.warning} />
-                  <Text style={styles.agroforestryLabel}>Species</Text>
-                  <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.species.join(', ')}</Text>
-                </View>
-                <View style={styles.agroforestryItem}>
-                  <Icon name="flower" size={16} color={theme.colors.accent} />
-                  <Text style={styles.agroforestryLabel}>Intercropping</Text>
-                  <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.intercropping.join(', ')}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header Section */}
+          <View style={styles.headerCard}>
+            <View style={styles.headerContent}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.productName}>{plot.plot_name}</Text>
+                <View style={styles.categoryContainer}>
+                  <Icon name="map-marker" size={16} color={theme.colors.textLight} />
+                  <Text style={styles.category}>{plot.location}</Text>
                 </View>
               </View>
+              <Badge text={plot.status?.toUpperCase() || 'PENDING'} variant={plot.status === 'verified' ? 'success' : 'warning'} />
+            </View>
+          </View>
+
+          {/* MRV Verification Banner */}
+          {plot.status === 'verified' && (
+            <View style={[styles.verificationBanner, styles.elevation]}>
+              <View style={styles.verificationRow}>
+                <Icon name="shield-check" size={22} color={theme.colors.success} />
+                <Text style={styles.verificationTitle}>MRV Verification Complete</Text>
+              </View>
+              <Text style={styles.verificationText}>
+                This plot has been verified by our AI system and contributes to your carbon credit score.
+              </Text>
             </View>
           )}
-        </View>
 
+          {/* Plot Information */}
+          <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="information" size={24} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>Plot Information</Text>
+            </View>
 
-        {/* Farm Location */}
-        {/* MRV Evidence Photos */}
-        <View style={[styles.section, styles.elevation]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="image-multiple" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>MRV Evidence Photos</Text>
-          </View>
-          <View style={styles.photoGrid}>
-            {plot.mrvData.evidencePhotos
-              .filter((photo): photo is typeof photo & { url: string } => !!photo.url)
-              .map((photo, idx) => (
-                <TouchableOpacity key={photo.id} activeOpacity={0.85} onPress={() => setSelectedImage(photo.url)}>
-                  <Image source={{ uri: photo.url }} style={styles.photoThumb} />
-                </TouchableOpacity>
-              ))}
-            {plot.mrvData.evidencePhotos.length === 0 && (
-              <Text style={styles.emptyPhotos}>No MRV evidence photos available</Text>
+            {/* Area Overview */}
+            <View style={styles.areaOverview}>
+              <View style={styles.areaCard}>
+                <Icon name="ruler-square" size={24} color={theme.colors.primary} />
+                <Text style={styles.areaValue}>{plot.mrvData.plotBoundaries.area} ha</Text>
+                <Text style={styles.areaLabel}>Total Area</Text>
+              </View>
+              <View style={styles.areaCard}>
+                <Icon name="rice" size={24} color={theme.colors.secondary} />
+                <Text style={styles.areaValue}>{plot.mrvData.ricePractices.area} ha</Text>
+                <Text style={styles.areaLabel}>Rice Area</Text>
+              </View>
+              <View style={styles.areaCard}>
+                <Icon name="tree" size={24} color={theme.colors.success} />
+                <Text style={styles.areaValue}>{plot.mrvData.agroforestrySystem.area} ha</Text>
+                <Text style={styles.areaLabel}>Agroforestry</Text>
+              </View>
+            </View>
+
+            {/* Practice Details */}
+            <View style={styles.practiceDetails}>
+              <View style={styles.practiceRow}>
+                <View style={styles.practiceIcon}>
+                  <Icon name="water" size={20} color={theme.colors.info} />
+                </View>
+                <View style={styles.practiceContent}>
+                  <Text style={styles.practiceLabel}>AWD Cycle</Text>
+                  <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.awdCycle}</Text>
+                </View>
+              </View>
+
+              <View style={styles.practiceRow}>
+                <View style={styles.practiceIcon}>
+                  <Icon name="leaf" size={20} color={theme.colors.warning} />
+                </View>
+                <View style={styles.practiceContent}>
+                  <Text style={styles.practiceLabel}>Straw Management</Text>
+                  <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.strawManagement}</Text>
+                </View>
+              </View>
+
+              <View style={styles.practiceRow}>
+                <View style={styles.practiceIcon}>
+                  <Icon name="calendar-blank" size={20} color={theme.colors.accent} />
+                </View>
+                <View style={styles.practiceContent}>
+                  <Text style={styles.practiceLabel}>Sowing Date</Text>
+                  <Text style={styles.practiceValue}>{plot.mrvData.ricePractices.sowingDate}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Agroforestry Details */}
+            {plot.mrvData.agroforestrySystem.area > 0 && (
+              <View style={styles.agroforestrySection}>
+                <Text style={styles.subsectionTitle}>Agroforestry Details</Text>
+                <View style={styles.agroforestryGrid}>
+                  <View style={styles.agroforestryItem}>
+                    <Icon name="tree" size={16} color={theme.colors.success} />
+                    <Text style={styles.agroforestryLabel}>Tree Density</Text>
+                    <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.treeDensity} trees/ha</Text>
+                  </View>
+                  <View style={styles.agroforestryItem}>
+                    <Icon name="sprout" size={16} color={theme.colors.warning} />
+                    <Text style={styles.agroforestryLabel}>Species</Text>
+                    <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.species.join(', ')}</Text>
+                  </View>
+                  <View style={styles.agroforestryItem}>
+                    <Icon name="flower" size={16} color={theme.colors.accent} />
+                    <Text style={styles.agroforestryLabel}>Intercropping</Text>
+                    <Text style={styles.agroforestryValue}>{plot.mrvData.agroforestrySystem.intercropping.join(', ')}</Text>
+                  </View>
+                </View>
+              </View>
             )}
           </View>
-        </View>
 
-        {/* Plot Location */}
-        <View style={[styles.section, styles.elevation]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="map-marker" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Plot Location</Text>
-          </View>
-          <View style={styles.mapContainer}>
-            <View style={styles.addressContainer}>
-              <Icon name="home-variant" size={20} color={theme.colors.primary} />
-              <Text style={styles.address}>{plot.location}</Text>
+
+          {/* Farm Location */}
+          {/* MRV Evidence Photos */}
+          <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="image-multiple" size={24} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>MRV Evidence Photos</Text>
             </View>
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: plot.mrvData.plotBoundaries.coordinates[0].lat,
-                longitude: plot.mrvData.plotBoundaries.coordinates[0].lng,
-                latitudeDelta: 0.0922,
-                longitudeDelta: 0.0421,
-              }}>
-              <Marker
-                coordinate={{
+            <View style={styles.photoGrid}>
+              {plot.mrvData.evidencePhotos
+                .filter((photo): photo is typeof photo & { url: string } => !!photo.url)
+                .map((photo, idx) => (
+                  <TouchableOpacity key={photo.id} activeOpacity={0.85} onPress={() => setSelectedImage(photo.url)}>
+                    <Image source={{ uri: photo.url }} style={styles.photoThumb} />
+                  </TouchableOpacity>
+                ))}
+              {plot.mrvData.evidencePhotos.length === 0 && (
+                <Text style={styles.emptyPhotos}>No MRV evidence photos available</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Plot Location */}
+          <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="map-marker" size={24} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>Plot Location</Text>
+            </View>
+            <View style={styles.mapContainer}>
+              <View style={styles.addressContainer}>
+                <Icon name="home-variant" size={20} color={theme.colors.primary} />
+                <Text style={styles.address}>{plot.location}</Text>
+              </View>
+              <MapView
+                style={styles.map}
+                initialRegion={{
                   latitude: plot.mrvData.plotBoundaries.coordinates[0].lat,
                   longitude: plot.mrvData.plotBoundaries.coordinates[0].lng,
-                }}
+                  latitudeDelta: 0.0922,
+                  longitudeDelta: 0.0421,
+                }}>
+                <Marker
+                  coordinate={{
+                    latitude: plot.mrvData.plotBoundaries.coordinates[0].lat,
+                    longitude: plot.mrvData.plotBoundaries.coordinates[0].lng,
+                  }}
+                />
+              </MapView>
+            </View>
+          </View>
+          {/* MRV Calculation Results */}
+          <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="file-document" size={24} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
+            </View>
+
+            {/* Total Carbon Impact & Carbon Badge */}
+            <View style={styles.carbonOverview}>
+              <View style={styles.carbonImpact}>
+                <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
+                <Text style={styles.carbonImpactValue}>{plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                <Text style={styles.carbonImpactUnit}>per season</Text>
+              </View>
+              <View style={styles.carbonBadge}>
+                <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>Grade A</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Carbon Performance (CP) */}
+            <View style={styles.performanceSection}>
+              <View style={styles.performanceHeader}>
+                <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
+                <Text style={styles.performanceScore}>{plot.mrvData.mrvScores.carbonPerformance}/100</Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
+              </View>
+              <View style={styles.performanceBreakdown}>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Rice AWD: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                </View>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Agroforestry: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* MRV Reliability (MR) */}
+            <View style={styles.reliabilitySection}>
+              <View style={styles.reliabilityHeader}>
+                <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
+                <Text style={styles.reliabilityScore}>{plot.mrvData.mrvScores.mrvReliability}/100</Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
+              </View>
+              <View style={styles.reliabilityBreakdown}>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Rice evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (photos + GPS + diary)</Text>
+                </View>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Agroforestry evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (tree coverage)</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Blockchain Anchor & View MRV Report */}
+            <View style={styles.blockchainSection}>
+              <View style={styles.blockchainHeader}>
+                <Text style={styles.blockchainHeaderLabel}># Blockchain Anchor</Text>
+              </View>
+              <Text style={styles.blockchainHash}>{plot.mrvData.blockchainAnchor.hash || 'N/A'}</Text>
+              <TouchableOpacity style={styles.mrvReportButton} onPress={() => Linking.openURL(plot.mrvData.blockchainAnchor.reportUrl)}>
+                <Icon name="earth" size={16} color={theme.colors.white} />
+                <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {/* Farmer Information */}
+          <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="account" size={24} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>Farmer Information</Text>
+            </View>
+            <View style={styles.farmerCard}>
+              <Image
+                source={{ uri: plot.farmer.avatar }}
+                style={styles.farmerImage}
               />
-            </MapView>
-          </View>
-        </View>
-  {/* MRV Calculation Results */}
-  <View style={[styles.section, styles.elevation]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="file-document" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
-          </View>
-          
-          {/* Total Carbon Impact & Carbon Badge */}
-          <View style={styles.carbonOverview}>
-            <View style={styles.carbonImpact}>
-              <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
-              <Text style={styles.carbonImpactValue}>2.09 tCO₂e</Text>
-              <Text style={styles.carbonImpactUnit}>per season</Text>
-            </View>
-            <View style={styles.carbonBadge}>
-              <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
-              <View style={styles.badgeContainer}>
-                <Text style={styles.badgeText}>Grade A</Text>
+              <View style={styles.farmerDetails}>
+                <Text style={styles.farmerName}>{plot.farmer.name}</Text>
+                <View style={styles.contactItem}>
+                  <Icon name="phone" size={16} color={theme.colors.primary} />
+                  <Text style={styles.farmerContact}>{plot.farmer.phone}</Text>
+                </View>
+                <View style={styles.contactItem}>
+                  <Icon name="email" size={16} color={theme.colors.primary} />
+                  <Text style={styles.farmerContact}>{plot.farmer.email}</Text>
+                </View>
+                <View style={styles.contactItem}>
+                  <Icon name="account-group" size={16} color={theme.colors.primary} />
+                  <Text style={styles.farmerContact}>{plot.farmer.cooperative}</Text>
+                </View>
               </View>
             </View>
           </View>
 
-          {/* Carbon Performance (CP) */}
-          <View style={styles.performanceSection}>
-            <View style={styles.performanceHeader}>
-              <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
-              <Text style={styles.performanceScore}>78.8/100</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
-            </View>
-            <View style={styles.performanceBreakdown}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownText}>Rice AWD: 82.5/100 → 0.99 tCO₂e</Text>
-              </View>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownText}>Agroforestry: 73.3/100 → 1.10 tCO₂e</Text>
-              </View>
-            </View>
-          </View>
 
-          {/* MRV Reliability (MR) */}
-          <View style={styles.reliabilitySection}>
-            <View style={styles.reliabilityHeader}>
-              <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
-              <Text style={styles.reliabilityScore}>75.0/100</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
-            </View>
-            <View style={styles.reliabilityBreakdown}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownText}>Rice evidence: 78/100 (photos + GPS + diary)</Text>
-              </View>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownText}>Agroforestry evidence: 72/100 (tree coverage)</Text>
-              </View>
-            </View>
-          </View>
+        </ScrollView>
+        <LoadingOverlay visible={loading} />
 
-          {/* Blockchain Anchor & View MRV Report */}
-          <View style={styles.blockchainSection}>
-            <View style={styles.blockchainHeader}>
-              <Text style={styles.blockchainLabel}># Blockchain Anchor</Text>
-            </View>
-            <Text style={styles.blockchainHash}>0x1630ab50759f5</Text>
-            <TouchableOpacity style={styles.mrvReportButton}>
-              <Icon name="earth" size={16} color={theme.colors.white} />
-              <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
+        {selectedImage && (
+          <View style={styles.viewerOverlay}>
+            <TouchableOpacity style={styles.viewerBackdrop} onPress={() => setSelectedImage(null)} />
+            <Image source={{ uri: selectedImage }} style={styles.viewerImage} resizeMode="contain" />
+            <TouchableOpacity style={styles.viewerClose} onPress={() => setSelectedImage(null)}>
+              <Icon name="close" size={24} color={theme.colors.white} />
             </TouchableOpacity>
           </View>
-        </View>
-        {/* Farmer Information */}
-        <View style={[styles.section, styles.elevation]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="account" size={24} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Farmer Information</Text>
-          </View>
-          <View style={styles.farmerCard}>
-            <Image
-              source={ require('../assets/images/avatar.jpeg')}
-              style={styles.farmerImage}
-            />
-            <View style={styles.farmerDetails}>
-              <Text style={styles.farmerName}>{plot.farmer.name}</Text>
-              <View style={styles.contactItem}>
-                <Icon name="phone" size={16} color={theme.colors.primary} />
-                <Text style={styles.farmerContact}>{plot.farmer.phone}</Text>
-              </View>
-              <View style={styles.contactItem}>
-                <Icon name="email" size={16} color={theme.colors.primary} />
-                <Text style={styles.farmerContact}>{plot.farmer.email}</Text>
-              </View>
-              <View style={styles.contactItem}>
-                <Icon name="account-group" size={16} color={theme.colors.primary} />
-                <Text style={styles.farmerContact}>{plot.farmer.cooperative}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-      
-      </ScrollView>
-      <LoadingOverlay visible={loading} />
-
-      {selectedImage && (
-        <View style={styles.viewerOverlay}>
-          <TouchableOpacity style={styles.viewerBackdrop} onPress={() => setSelectedImage(null)} />
-          <Image source={{ uri: selectedImage }} style={styles.viewerImage} resizeMode="contain" />
-          <TouchableOpacity style={styles.viewerClose} onPress={() => setSelectedImage(null)}>
-            <Icon name="close" size={24} color={theme.colors.white} />
-          </TouchableOpacity>
-        </View>
-      )}
+        )}
       </LinearGradient>
     </SafeAreaView>
   );
@@ -1048,7 +1088,7 @@ const styles = StyleSheet.create({
   blockchainHeader: {
     marginBottom: 12,
   },
-  blockchainLabel: {
+  blockchainHeaderLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: theme.colors.text,

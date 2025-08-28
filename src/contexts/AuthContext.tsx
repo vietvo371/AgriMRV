@@ -22,18 +22,7 @@ interface AuthContextData {
   loading: boolean;
   userRole: 'farmer' | 'bank' | 'cooperative' | 'verifier' | 'government' | 'buyer' | null;
   signIn: (credentials: { identifier: string; password: string; type: string }) => Promise<void>;
-  signUp: (userData: {
-    name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-    phone: string;
-    dob: string;
-    role: string;
-    gps_location: string;
-    org_name?: string;
-    employee_id?: string;
-  }) => Promise<void>;
+  signUp: (userData: any) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -88,7 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         employee_id: user.employee_id,
         created_at: user.created_at,
       };
-
       await AsyncStorage.setItem('@AgriCred:user', JSON.stringify(formattedUser));
       if (token) {
         await AsyncStorage.setItem('@AgriCred:token', token);
@@ -115,27 +103,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (userData: {
-    name: string;
-    email: string;
-    password: string;
-    password_confirmation: string;
-    phone: string;
-    dob: string;
-    role: string;
-    gps_location: string;
-    org_name?: string;
-    employee_id?: string;
-  }) => {
+  const signUp = async (userData: any) => {
     try {
       // Format the data to match the database schema
       const formattedData = {
-        ...userData,
-        // Convert GPS string to object for API
-        gps_location: userData.gps_location.split(',').map(coord => coord.trim()).join(','),
-        // Only include optional fields if they have values
-        ...(userData.org_name ? { org_name: userData.org_name } : {}),
-        ...(userData.employee_id ? { employee_id: userData.employee_id } : {}),
+        email: userData.email,
+        phone: userData.phone,
+        full_name: userData.full_name ?? userData.name,
+        date_of_birth: userData.date_of_birth ?? userData.dob,
+        user_type: userData.user_type ?? userData.role,
+        gps_latitude: userData.gps_latitude ?? userData.gps_location?.split(',')[0]?.trim(),
+        gps_longitude: userData.gps_longitude ?? userData.gps_location?.split(',')[1]?.trim(),
+        organization_name: userData.organization_name ?? userData.org_name ?? undefined,
+        organization_type: userData.organization_type ?? (userData.role === 'bank' ? 'bank' : (userData.role === 'cooperative' ? 'cooperative' : undefined)),
+        address: userData.address,
+        password: userData.password,
+        password_confirmation: userData.password_confirmation,
       };
 
       console.log('Sending registration data:', formattedData);

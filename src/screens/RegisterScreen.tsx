@@ -64,6 +64,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     dob: new Date(),
     role: 'farmer',
     gps_location: '',
+    gps_latitude: '',
+    gps_longitude: '',
+    address: '',
     org_name: '',
     employee_id: '',
   });
@@ -127,10 +130,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     }
 
     // GPS location validation
-    if (!formData.gps_location) {
+    if (!formData.gps_latitude || !formData.gps_longitude) {
       newErrors.gps_location = 'GPS location is required';
-    } else if (!/^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/.test(formData.gps_location)) {
-      newErrors.gps_location = 'Invalid GPS location format';
+    }
+    if (!formData.address) {
+      newErrors.address = 'Address is required';
     }
 
     // Role-specific validations
@@ -161,8 +165,18 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     setLoading(true);
     try {
       const registrationData = {
-        ...formData,
-        dob: formData.dob.toISOString().split('T')[0],
+        email: formData.email,
+        phone: formData.phone,
+        full_name: formData.name,
+        date_of_birth: formData.dob.toISOString().split('T')[0],
+        user_type: formData.role,
+        gps_latitude: formData.gps_latitude,
+        gps_longitude: formData.gps_longitude,
+        organization_name: formData.org_name || undefined,
+        organization_type: formData.role === 'bank' ? 'bank' : (formData.role === 'cooperative' ? 'cooperative' : undefined),
+        address: formData.address,
+        password: formData.password,
+        password_confirmation: formData.password_confirmation,
       };
       await signUp(registrationData);
       navigation.replace('Login');
@@ -343,13 +357,16 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
       <View style={styles.inputGroup}>
         <LocationPicker
-          label={formData.role === 'farmer' ? 'Farm Location' : 'Organization Location'}
+          label="Address"
           value={selectedLocation}
           onChange={location => {
             setSelectedLocation(location);
             updateFormData('gps_location', `${location.latitude},${location.longitude}`);
+            updateFormData('gps_latitude', String(location.latitude));
+            updateFormData('gps_longitude', String(location.longitude));
           }}
-          error={errors.gps_location}
+          onAddressChange={(addr) => updateFormData('address', addr || '')}
+          error={errors.gps_location || errors.address}
           required
         />
 

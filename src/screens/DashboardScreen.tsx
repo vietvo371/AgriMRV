@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,60 +13,61 @@ import { theme } from '../theme/colors';
 import Badge from '../component/Badge';
 import LoadingOverlay from '../component/LoadingOverlay';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { dashboardApi } from '../utils/Api';
+import Card from '../component/Card';
 interface DashboardScreenProps {
   navigation: any;
 }
 
-// Mockup data based on the 4-stage process
-const mockFarmerData = {
-  rice: {
-    area: 1.8, // hectare
-    awdCycle: "7 ngày ngập, 3 ngày khô",
-    strawManagement: "Incorporated into soil"
-  },
-  agroforestry: {
-    area: 0.7, // hectare
-    treeDensity: 150, // cây/hectare
-    species: ["Coconut", "Mango"]
-  },
-  aiResults: {
-    avgAuthenticity: 92,
-    avgHealth: 85,
-    practiceMatch: 88
-  }
-};
-
-// Calculate scores based on the formula
-const calculateScores = () => {
-  // Carbon Performance calculation
-  const riceScore = mockFarmerData.rice.area * 0.85 * 1.1; // 1.683 tCO2
-  const agroScore = mockFarmerData.agroforestry.area * mockFarmerData.agroforestry.treeDensity * 1.1 * 0.02; // 2.31 tCO2
-  const CP = (riceScore * 0.6) + (agroScore * 0.4); // 1.934 tCO2
-
-  // Convert to 100-point scale
-  const CPScore = Math.round((CP / 3.0) * 100); // 65
-
-  // MRV Reliability calculation
-  const aiConf = (mockFarmerData.aiResults.avgAuthenticity * 0.5) +
-    (mockFarmerData.aiResults.avgHealth * 0.3) +
-    (mockFarmerData.aiResults.practiceMatch * 0.2); // 88.1
-  const verHistory = 85; // based on history
-  const docQuality = 82; // document quality
-  const consistency = 78; // consistency
-
-  const MR = Math.round((aiConf * 0.4) + (verHistory * 0.3) + (docQuality * 0.2) + (consistency * 0.1)); // 85
-
-  // Final score
-  const finalScore = Math.round((CPScore * 0.7) + (MR * 0.3)); // 71
-
-  return { CP: CPScore, MR, finalScore };
+type Summary = {
+  rice: { area: number; awdCycle: string; strawManagement: string };
+  agroforestry: { area: number; treeDensity: number; species: string[] };
+  aiResults: { avgAuthenticity: number; avgHealth: number; practiceMatch: number };
 };
 
 const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const [selectedPlot, setSelectedPlot] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [plots, setPlots] = useState<any[]>([]);
+  const [scores, setScores] = useState<{ CP: number; MR: number; finalScore: number }>({ CP: 0, MR: 0, finalScore: 0 });
 
-  const scores = calculateScores();
+  const calcScoresFrom = (s: Summary) => {
+    const riceScore = (s?.rice?.area || 0) * 0.85 * 1.1;
+    const agroScore = (s?.agroforestry?.area || 0) * (s?.agroforestry?.treeDensity || 0) * 1.1 * 0.02;
+    const CPt = (riceScore * 0.6) + (agroScore * 0.4);
+    const CP = Math.round((CPt / 3.0) * 100);
+
+    const aiConf = (s?.aiResults?.avgAuthenticity || 0) * 0.5
+      + (s?.aiResults?.avgHealth || 0) * 0.3
+      + (s?.aiResults?.practiceMatch || 0) * 0.2;
+    const verHistory = 85;
+    const docQuality = 82;
+    const consistency = 78;
+    const MR = Math.round((aiConf * 0.4) + (verHistory * 0.3) + (docQuality * 0.2) + (consistency * 0.1));
+
+    const finalScore = Math.round((CP * 0.7) + (MR * 0.3));
+    return { CP, MR, finalScore };
+  };
+
+  const getDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [landPlotsRes] = await Promise.all([
+        dashboardApi.getLandPlots(),
+      ]);
+      const plotsData = Array.isArray(landPlotsRes?.plots) ? landPlotsRes.plots : (Array.isArray(landPlotsRes) ? landPlotsRes : []);
+      console.log('plotsData', plotsData);
+      setPlots(plotsData);
+    } catch (error: any) {
+      console.log('error', error.response);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+     getDashboardData()
+  }, []);
 
   const handleCreateRecord = () => {
     navigation.navigate('CreateRecord', { recordId: '1' });
@@ -146,72 +147,65 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
                 <Text style={styles.sectionTitle}>Land Plots</Text>
               </View>
               <View style={styles.plotCountBadge}>
-                <Text style={styles.plotCountText}>2 plots</Text>
+                <Text style={styles.plotCountText}>{plots.length} plots</Text>
               </View>
             </View>
 
             <View style={styles.plotsList}>
-              {/* Main Plot */}
-              <TouchableOpacity
-                style={styles.plotCard}
-                onPress={() => navigation.navigate('RecordDetail', { recordId: 'main-plot-1' })}
-              >
-                <View style={styles.plotCardContent}>
-                  <View style={styles.plotInfo}>
-                    <Text style={styles.plotTitle}>Main Plot - An Giang</Text>
-                    <Text style={styles.plotDetails}>{mockFarmerData.rice.area + mockFarmerData.agroforestry.area} ha • Rice + Agroforestry</Text>
-                    <View style={styles.plotMetrics}>
-                      <View style={styles.metricItem}>
-                        <Icon name="ruler" size={14} color={theme.colors.textLight} />
-                        <Text style={styles.metricText}>{mockFarmerData.rice.area} ha/rice</Text>
-                      </View>
-                      <View style={styles.metricItem}>
-                        <Icon name="tree" size={14} color={theme.colors.textLight} />
-                        <Text style={styles.metricText}>{mockFarmerData.agroforestry.area} ha/trees</Text>
-                      </View>
-                      <View style={styles.metricItem}>
-                        <Icon name="water" size={14} color={theme.colors.textLight} />
-                        <Text style={styles.metricText}>AWD</Text>
+              {plots.map((p: any) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.plotCard}
+                  onPress={() => navigation.navigate('RecordDetail', { recordId: String(p.id) })}
+                >
+                  <View style={styles.plotCardContent}>
+                    <View style={styles.plotInfo}>
+                      <Text style={styles.plotTitle}>{p.name || `Plot #${p.id}`}</Text>
+                      <Text style={styles.plotDetails}>
+                        {(p.total_area ?? 0)} ha • {p.plot_type || 'N/A'}
+                      </Text>
+                      <View style={styles.plotMetrics}>
+                        {typeof p.rice_area === 'number' && (
+                          <View style={styles.metricItem}>
+                            <Icon name="ruler" size={14} color={theme.colors.textLight} />
+                            <Text style={styles.metricText}>{p.rice_area} ha/rice</Text>
+                          </View>
+                        )}
+                        {typeof p.agroforestry_area === 'number' && (
+                          <View style={styles.metricItem}>
+                            <Icon name="tree" size={14} color={theme.colors.textLight} />
+                            <Text style={styles.metricText}>{p.agroforestry_area} ha/trees</Text>
+                          </View>
+                        )}
+                        {!!p.water_management_method && (
+                          <View style={styles.metricItem}>
+                            <Icon name="water" size={14} color={theme.colors.textLight} />
+                            <Text style={styles.metricText}>AWD</Text>
+                          </View>
+                        )}
                       </View>
                     </View>
+                    <View style={styles.plotStatus}>
+                      <Badge
+                        text={(p.status || 'pending').charAt(0).toUpperCase() + (p.status || 'pending').slice(1)}
+                        variant={(p.status === 'verified') ? 'success' : (p.status === 'pending') ? 'warning' : 'info'}
+                        size="small"
+                      />
+                      <Icon name="chevron-right" size={20} color={theme.colors.textLight} />
+                    </View>
                   </View>
-                  <View style={styles.plotStatus}>
-                    <Badge text="Verified" variant="success" size="small" />
-                    <Icon name="chevron-right" size={20} color={theme.colors.textLight} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={plots.length === 0 ? styles.emptyList : { display: 'none' }}>
+            <Card style={styles.emptyCard}>
+                  <View style={styles.emptyContent}>
+                    <Icon name="map-marker-plus" size={48} color={theme.colors.textLight} />
+                    <Text style={styles.emptyTitle}>No Plots Found</Text>
+                    <Text style={styles.emptyText}>Please add a plot to get started</Text>
                   </View>
-                </View>
-              </TouchableOpacity>
+                </Card>
 
-              {/* Secondary Plot */}
-              <TouchableOpacity
-                style={styles.plotCard}
-                onPress={() => navigation.navigate('RecordDetail', { recordId: 'secondary-plot-2' })}
-              >
-                <View style={styles.plotCardContent}>
-                  <View style={styles.plotInfo}>
-                    <Text style={styles.plotTitle}>Secondary Plot - Dong Thap</Text>
-                    <Text style={styles.plotDetails}>2.0 ha • Certified AWD Practice</Text>
-                    <View style={styles.plotMetrics}>
-                      <View style={styles.metricItem}>
-                        <Icon name="ruler" size={14} color={theme.colors.textLight} />
-                        <Text style={styles.metricText}>2.0 ha</Text>
-                      </View>
-                      <View style={styles.metricItem}>
-                        <Icon name="water" size={14} color={theme.colors.textLight} />
-                        <Text style={styles.metricText}>AWD</Text>
-                      </View>
-                      <View style={styles.metricItem}>
-                        <Icon name="calendar" size={14} color={theme.colors.textLight} />
-                        <Text style={styles.metricText}>2024</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.plotStatus}>
-                    <Badge text="Pending" variant="warning" size="small" />
-                    <Icon name="chevron-right" size={20} color={theme.colors.textLight} />
-                  </View>
-                </View>
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -227,6 +221,11 @@ const styles = StyleSheet.create({
   },
   backgroundContainer: {
     ...StyleSheet.absoluteFillObject,
+  },
+  emptyList: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   viewAllText: {
     fontFamily: theme.typography.fontFamily.medium,
@@ -834,6 +833,21 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.xs,
     color: theme.colors.textLight,
     textAlign: 'center',
+  },
+  emptyCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+  },
+  emptyContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.md,
+  },
+  emptyTitle: {
+    fontSize: theme.typography.fontSize.lg,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.text,
   },
 });
 

@@ -35,6 +35,10 @@ export type RootStackParamList = {
   
   // Common
   Notifications: undefined;
+  AiVerify: undefined;
+  CreateRecord: undefined;
+  Finance: undefined;
+  Profile: undefined;
 };  
 
 export type MainTabParamList = {

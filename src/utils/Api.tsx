@@ -71,28 +71,55 @@ api.interceptors.response.use(
 
 // Dashboard APIs
 export const dashboardApi = {
-  // Lấy thông tin user profile
-  getUserProfile: async (): Promise<UserProfile> => {
-    // Use mock user for local UI demo
-    return {
-      full_name: mockUsers[0].name,
-      role: 'farmer',
-      farm_name: mockUsers[0].org_name,
-      profile_image: '',
-    };
+  // Tổng hợp dashboard (thay mock trên client)
+  getSummary: async () => {
+    const res = await api.get('/dashboard/summary');
+    return res.data.data;
   },
 
-  // Lấy thống kê tổng quan
-  getDashboardStats: async (): Promise<DashboardStats> => {
-    return deriveDashboardStats();
+  // MRV overview (tuỳ UI sử dụng)
+  getMrvOverview: async () => {
+    const res = await api.get('/dashboard/mrv-overview');
+    return res.data.data;
   },
 
-  // Lấy danh sách lô hàng gần đây
-  getRecentBatches: async (): Promise<Batch[]> => {
-    return deriveRecentBatches() as unknown as Batch[];
+  // Danh sách plots
+  getLandPlots: async () => {
+    const res = await api.get('/dashboard/land-plots');
+    return res.data.data;
   },
 
-  // Lấy số thông báo chưa đọc
+  // Chi tiết plot
+  getLandPlotDetail: async (plotId: string | number) => {
+    const res = await api.get(`/dashboard/land-plots/${plotId}`);
+    return res.data.data;
+  },
+
+  // Thống kê tổng quan
+  getStatistics: async () => {
+    const res = await api.get('/dashboard/statistics');
+    return res.data.data;
+  },
+
+  // Tạo plot
+  createPlot: async (payload: any) => {
+    const res = await api.post('/dashboard/land-plots', payload);
+    return res.data.data;
+  },
+
+  // Cập nhật plot
+  updatePlot: async (plotId: string | number, payload: any) => {
+    const res = await api.put(`/dashboard/land-plots/${plotId}`, payload);
+    return res.data.data;
+  },
+
+  // Xoá plot
+  deletePlot: async (plotId: string | number) => {
+    const res = await api.delete(`/dashboard/land-plots/${plotId}`);
+    return res.data.data;
+  },
+
+  // Lấy số thông báo chưa đọc (giữ lại nếu backend có)
   getUnreadNotificationCount: async (): Promise<number> => {
     try {
       const response = await api.get('/notifications/unread-count');
@@ -100,7 +127,7 @@ export const dashboardApi = {
       return response.data.unread_count || 0;
     } catch (error: any) {
       console.error('Error getting notification count:', error.response?.data || error.message);
-      return 0; // Return 0 if there's an error
+      return 0;
     }
   }
 };

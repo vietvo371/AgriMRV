@@ -70,10 +70,116 @@ const MainTabs = () => {
     },
   };
 
-  // if (userRole === 'farmer') {
+  // Farmer View
+  if (userRole === 'farmer') {
     return (
       <Tab.Navigator screenOptions={tabScreenOptions}>
-              <Tab.Screen
+        <Tab.Screen
+          name="Home"
+          component={DashboardScreen}
+          options={{
+            title: 'Home',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="home" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="AiVerify"
+          component={AiVerifyScreen}
+          options={{
+            title: 'AI Verify',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="shield-check" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Credit"
+          component={CreditDashboardScreen}
+          options={{
+            title: 'Credit',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="credit-card-check" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Finance"
+          component={FinanceScreen}
+          options={{
+            title: 'Finance',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="finance" size={size + 4} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="account" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    );
+  }
+
+  // Bank/Coop View
+  if (userRole === 'bank' || userRole === 'cooperative') {
+    return (
+      <Tab.Navigator screenOptions={tabScreenOptions}>
+        <Tab.Screen
+          name="CreditViewer"
+          component={BankViewerScreen}
+          options={{
+            title: 'Credit Viewer',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="credit-card-search" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Applications"
+          component={LoanApprovalScreen}
+          options={{
+            title: 'Applications',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="file-document" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Analytics"
+          component={CreditProfileScreen}
+          options={{
+            title: 'Analytics',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="chart-bar" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Profile"
+          component={ProfileScreen}
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="cog" size={size} color={color} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    );
+  }
+
+  // Default/Other roles view
+  return (
+    <Tab.Navigator screenOptions={tabScreenOptions}>
+      <Tab.Screen
         name="Home"
         component={DashboardScreen}
         options={{
@@ -84,86 +190,12 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
-        name="AiVerify"
-        component={AiVerifyScreen}
-        options={{
-          title: 'AI Verify',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="shield-check" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Credit"
-        component={CreditDashboardScreen}
-        options={{
-          title: 'Credit',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="credit-card-check" size={size} color={color} />
-          ),
-        }}
-      />
-       <Tab.Screen
-        name="Finance"
-        component={FinanceScreen}
-        options={{
-          title: 'Finance',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="finance" size={size + 4} color={color} />
-          ),
-        }}
-      />
-      
-      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
             <Icon name="account" size={size} color={color} />
-          ),
-        }}
-      />
-      </Tab.Navigator>
-    );
-  // }
-
-  // Bank/Coop View
-  return (
-    <Tab.Navigator screenOptions={tabScreenOptions}>
-      <Tab.Screen
-        name="CreditViewer"
-        component={BankViewerScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="credit-card-search" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Applications"
-        component={LoanApprovalScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="file-document" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Analytics"
-        component={CreditProfileScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="chart-bar" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={FarmerProfileScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="cog" size={size} color={color} />
           ),
         }}
       />
