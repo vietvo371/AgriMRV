@@ -16,7 +16,7 @@ import { theme } from '../theme/colors';
 import Badge from '../component/Badge';
 import Card from '../component/Card';
 import LoadingOverlay from '../component/LoadingOverlay';
-import { mockAiResults, mockFarmProfiles, mockImages, mockUsers } from '../utils/mockData';
+import { aiApi } from '../utils/Api';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 
@@ -96,45 +96,54 @@ const AiVerifyScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | AIAnalysis['status']>('all');
 
-  const analyses: AIAnalysis[] = React.useMemo(() => {
-    return mockAiResults.map((a) => {
-      const profile = mockFarmProfiles.find((p) => p.profile_id === a.profile_id)!;
-      const user = mockUsers.find((u) => u.user_id === profile.user_id)!;
-      const image = mockImages.find((img) => img.profile_id === profile.profile_id);
-      return {
-        id: String(a.profile_id),
-        cropType: profile.crop_type,
-        imageUrl: image?.image_url || '',
-        confidence: a.credit_score || a.image_score,
-        status: a.yield_risk < 30 ? 'verified' : a.yield_risk < 60 ? 'needs_review' : 'processing',
-        analysisDate: a.processed_at,
-        location: user.org_name,
+  const [analyses, setAnalyses] = useState<AIAnalysis[]>([]);
+  const [stats, setStats] = useState<{ verified: number; needs_review: number; processing: number; avg_confidence: number } | null>(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [listRes, statsRes] = await Promise.all([
+        aiApi.listAnalyses({ status: statusFilter === 'all' ? undefined : statusFilter, q: query || undefined }),
+        aiApi.getStats(),
+      ]);
+      const items = (listRes?.data || []).map((x: any) => ({
+        id: String(x.id),
+        cropType: x.crop_type,
+        imageUrl: x.image_url || '',
+        confidence: x.confidence,
+        status: x.status,
+        analysisDate: x.analysis_date,
+        location: x.location,
         findings: {
-          cropHealth: Math.min(100, Math.round(a.image_score)),
-          authenticity: Math.min(100, Math.round(80 + a.image_score / 5)),
-          maturity: Math.min(100, Math.round(70 + a.credit_score / 4)),
-          quality: Math.min(100, Math.round(75 + a.credit_score / 5)),
+          cropHealth: x.findings?.crop_health ?? 0,
+          authenticity: x.findings?.authenticity ?? 0,
+          maturity: x.findings?.maturity ?? 0,
+          quality: x.findings?.quality ?? 0,
         },
-        insights: [
-          'AI detected strong crop health signals',
-          'No signs of pest damage in images',
-          'Harvest timing appears optimal',
-        ],
-        recommendations: [
-          'Maintain current irrigation schedule',
-          'Consider premium market channels',
-        ],
-        creditImpact: Math.max(5, Math.round(a.credit_score / 6)),
-      } as AIAnalysis;
-    });
-  }, []);
+        insights: x.insights || [],
+        recommendations: x.recommendations || [],
+        creditImpact: x.credit_impact ?? 0,
+      } as AIAnalysis));
+      setAnalyses(items);
+      setStats(statsRes || null);
+    } catch (e) {
+      setAnalyses([]);
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [statusFilter]);
 
   if (loading) return <LoadingOverlay visible={true} message="Loading AI verification..." />;
 
-  const verified = analyses.filter(a => a.status === 'verified').length;
-  const needsReview = analyses.filter(a => a.status === 'needs_review').length;
-  const processing = analyses.filter(a => a.status === 'processing').length;
-  const avgConfidence = Math.round(analyses.reduce((s, a) => s + a.confidence, 0) / Math.max(1, analyses.length));
+  const verified = stats?.verified ?? analyses.filter(a => a.status === 'verified').length;
+  const needsReview = stats?.needs_review ?? analyses.filter(a => a.status === 'needs_review').length;
+  const processing = stats?.processing ?? analyses.filter(a => a.status === 'processing').length;
+  const avgConfidence = stats?.avg_confidence ?? Math.round(analyses.reduce((s, a) => s + a.confidence, 0) / Math.max(1, analyses.length));
   
   const filtered = analyses.filter(a => {
     const matchStatus = statusFilter === 'all' ? true : a.status === statusFilter;

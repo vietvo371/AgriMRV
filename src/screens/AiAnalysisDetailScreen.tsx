@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -8,15 +8,19 @@ import {
   Image,
   Platform,
   TouchableOpacity,
-  Dimensions
+  Dimensions,
+  Linking,
+  Share
 } from 'react-native';
+import { WebView } from 'react-native-webview';
+import { getToken } from '../utils/TokenManager';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { theme } from '../theme/colors';
 import Header from '../component/Header';
 import Card from '../component/Card';
 import Badge from '../component/Badge';
-import { mockAiResults, mockFarmProfiles, mockImages, mockUsers } from '../utils/mockData';
+import { aiApi } from '../utils/Api';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
@@ -87,34 +91,58 @@ const getMetricColor = (value: number) => {
 
 const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { analysisId } = route.params;
-  const a = mockAiResults.find(x => String(x.profile_id) === analysisId)!;
-  const profile = mockFarmProfiles.find(p => p.profile_id === a.profile_id)!;
-  const user = mockUsers.find(u => u.user_id === profile.user_id)!;
-  const image = mockImages.find(img => img.profile_id === profile.profile_id);
-
-  const confidence = a.credit_score || a.image_score;
-  const status = a.yield_risk < 30 ? 'verified' : a.yield_risk < 60 ? 'needs_review' : 'processing';
-  const findings = {
-    cropHealth: Math.min(100, Math.round(a.image_score)),
-    authenticity: Math.min(100, Math.round(80 + a.image_score / 5)),
-    maturity: Math.min(100, Math.round(70 + a.credit_score / 4)),
-    quality: Math.min(100, Math.round(75 + a.credit_score / 5)),
-  };
-  const insights = [
-    'AI detected strong crop health signals with excellent leaf color and density',
-    'No signs of pest damage, disease, or nutrient deficiency in analyzed images',
-    'Harvest timing appears optimal based on crop maturity indicators',
-    'Crop spacing and growth patterns indicate good farming practices',
-  ];
-  const recommendations = [
-    'Maintain current irrigation schedule to preserve crop quality',
-    'Consider premium market channels for higher price realization',
-    'Document harvest process for better traceability',
-    'Continue monitoring for optimal harvest window',
-  ];
-
-  const creditImpact = Math.max(5, Math.round(a.credit_score / 6));
+  const [detail, setDetail] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'insights'>('overview');
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportToken, setReportToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await aiApi.getDetail(analysisId);
+        setDetail(res?.data || null);
+      } catch (e) {
+        setDetail(null);
+      }
+    })();
+  }, [analysisId]);
+
+  const confidence = detail?.confidence ?? 0;
+  const status = detail?.status ?? 'processing';
+  const findings = {
+    cropHealth: detail?.findings?.crop_health ?? 0,
+    authenticity: detail?.findings?.authenticity ?? 0,
+    maturity: detail?.findings?.maturity ?? 0,
+    quality: detail?.findings?.quality ?? 0,
+  };
+  const insights = detail?.insights || [];
+  const recommendations = detail?.recommendations || [];
+  const creditImpact = detail?.credit_impact ?? 0;
+
+  const handleDownloadReport = async () => {
+    const url = aiApi.getReportUrl(analysisId);
+    const token = await getToken();
+    if (url && token) {
+      setReportToken(token);
+      setReportVisible(true);
+    } else if (url) {
+      Linking.openURL(url).catch(() => {});
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const res = await aiApi.createShare(analysisId, 72);
+      const url = res?.share_url || null;
+      setShareUrl(url);
+      if (url) {
+        await Share.share({ message: url, url });
+      }
+    } catch (e) {
+      setShareUrl(null);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,7 +161,7 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               <View style={styles.headerContent}>
                 <View style={styles.headerInfo}>
                   <View style={styles.titleSection}>
-                    <Text style={styles.cropTitle}>{profile.crop_type}</Text>
+                    <Text style={styles.cropTitle}>{detail?.crop_type || '—'}</Text>
                     <View style={[
                       styles.statusBadge,
                       { backgroundColor: getStatusColor(status) + '15' }
@@ -154,14 +182,14 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
                   <View style={styles.locationRow}>
                     <Icon name="map-marker" size={16} color={theme.colors.textLight} />
-                    <Text style={styles.locationText}>{user.org_name}</Text>
+                    <Text style={styles.locationText}>{detail?.location || '—'}</Text>
                   </View>
 
                   <View style={styles.analysisMetaRow}>
                     <View style={styles.metaItem}>
                       <Icon name="calendar" size={14} color={theme.colors.textLight} />
                       <Text style={styles.metaText}>
-                        {new Date(a.processed_at).toLocaleDateString()}
+                        {new Date(detail?.analysis_date).toLocaleDateString()}
                       </Text>
                     </View>
                     <View style={styles.metaItem}>
@@ -178,9 +206,9 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                 </TouchableOpacity>
               </View>
 
-              {image?.image_url && (
+              {detail?.image_url && (
                 <View style={styles.imageContainer}>
-                  <Image source={{ uri: image.image_url }} style={styles.heroImage} />
+                  <Image source={{ uri: detail.image_url }} style={styles.heroImage} />
                   <View style={styles.imageOverlay}>
                     <View style={styles.imageInfo}>
                       <Icon name="camera" size={16} color={theme.colors.white} />
@@ -319,7 +347,7 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
 
               <View style={styles.insightsList}>
-                {insights.map((text, idx) => (
+                {insights.map((text: string, idx: number) => (
                   <Animated.View
                     key={idx}
                     entering={FadeInRight.duration(300).delay(idx * 100).springify()}
@@ -332,7 +360,11 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                     </View>
                   </Animated.View>
                 ))}
+                {insights.length === 0 && (
+                  <Text style={[styles.mutedText, { textAlign: 'center' }]}>No insights found</Text>
+                )}
               </View>
+
             </Card>
           </Animated.View>
           )}
@@ -356,7 +388,7 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
 
               <View style={styles.recommendationsList}>
-                {recommendations.map((text, idx) => (
+                {recommendations.map((text: string, idx: number) => (
                   <Animated.View
                     key={idx}
                     entering={FadeInRight.duration(300).delay(idx * 100).springify()}
@@ -378,12 +410,12 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           {activeTab === 'overview' && (
           <Animated.View entering={FadeInDown.duration(900).springify()}>
             <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity style={styles.actionButton} onPress={handleDownloadReport}>
                 <Icon name="download" size={20} color={theme.colors.primary} />
                 <Text style={styles.actionButtonText}>Download Report</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
+              <TouchableOpacity style={[styles.actionButton, styles.primaryButton]} onPress={handleShare}>
                 <Icon name="share" size={20} color={theme.colors.white} />
                 <Text style={[styles.actionButtonText, { color: theme.colors.white }]}>
                   Share Analysis
@@ -394,6 +426,21 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
         </ScrollView>
       </LinearGradient>
+      {reportVisible && (
+        <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.white }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+            <TouchableOpacity onPress={() => setReportVisible(false)} style={{ padding: 8 }}>
+              <Icon name="close" size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+            <Text style={{ marginLeft: 8, fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text }}>Report</Text>
+          </View>
+          <WebView
+            source={{ uri: aiApi.getReportUrl(analysisId), headers: reportToken ? { Authorization: `Bearer ${reportToken}` } : {} }}
+            style={{ flex: 1 }}
+            startInLoadingState
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 };

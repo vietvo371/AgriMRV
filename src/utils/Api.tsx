@@ -45,9 +45,6 @@ const baseUrl = Platform.select({
 
 const api = axios.create({
     baseURL: baseUrl,
-    headers: {
-        'Content-Type': 'application/json',
-    },
     timeout: 10000, // 10 seconds
 });
 
@@ -103,7 +100,10 @@ export const dashboardApi = {
 
   // Tạo plot
   createPlot: async (payload: any) => {
-    const res = await api.post('/dashboard/land-plots', payload);
+    const isFormData = typeof FormData !== 'undefined' && payload instanceof FormData;
+    const res = await api.post('/dashboard/land-plots', payload, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'application/json' }
+    });
     return res.data.data;
   },
 
@@ -130,6 +130,64 @@ export const dashboardApi = {
       return 0;
     }
   }
+};
+
+// AI Analysis APIs
+export const aiApi = {
+  // List analyses with filters
+  listAnalyses: async (params?: { status?: 'all' | 'verified' | 'processing' | 'needs_review' | 'rejected'; q?: string; page?: number; limit?: number; sort?: string; }) => {
+    try {
+      const res = await api.get('/ai/analyses', { params });
+      console.log('Analyses response:', res.data);
+      return res.data.data;
+    } catch (error: any) {
+      console.error('Error listing analyses:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  // Stats overview
+  getStats: async () => {
+    try {
+      const res = await api.get('/ai/analyses/stats');
+      return res.data.data;
+    } catch (error: any) {
+      console.error('Error getting stats:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  // Detail
+  getDetail: async (id: string | number) => {
+    try {
+      const res = await api.get(`/ai/analyses/${id}`);
+      console.log('Detail response:', res.data);
+      return res.data.data;
+    } catch (error: any) {
+      console.error('Error getting detail:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  // Refresh
+  refresh: async (id: string | number) => {
+    try {
+      const res = await api.post(`/ai/analyses/${id}/refresh`);
+      return res.data.data;
+    } catch (error: any) {
+      console.error('Error refreshing analysis:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  // Report download URL helper
+  getReportUrl: (id: string | number) => `${baseUrl}/ai/analyses/${id}/report`,
+  // Share
+  createShare: async (id: string | number, expiresInHours = 72) => {
+    try {
+      const res = await api.post(`/ai/analyses/${id}/share`, { expires_in_hours: expiresInHours });
+      return res.data.data;
+    } catch (error: any) {
+      console.error('Error creating share:', error.response?.data || error.message);
+      throw error;
+    }
+  },
 };
 
 export default api;

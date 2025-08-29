@@ -11,20 +11,23 @@ import {
   Dimensions,
   TouchableOpacity,
   Animated,
-  PanResponder,
+  PermissionsAndroid,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import MapView, { Marker, Region } from 'react-native-maps';
+import Geolocation from 'react-native-geolocation-service';
 import { theme } from '../theme/colors';
 import Header from '../component/Header';
 import InputCustom from '../component/InputCustom';
 import SelectCustom from '../component/SelectCustom';
 import DatePicker from '../component/DatePicker';
-import LocationPicker from '../component/LocationPicker';
 import ImagePicker from '../component/ImagePicker';
 import ButtonCustom from '../component/ButtonCustom';
 import LoadingOverlay from '../component/LoadingOverlay';
-import api from '../utils/Api';
+import api, { dashboardApi } from '../utils/Api';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { launchImageLibrary } from 'react-native-image-picker';
+import LocationPicker from '../component/LocationPicker';
 
 interface CreateRecordScreenProps {
   navigation: any;
@@ -34,6 +37,11 @@ interface PlotCoordinates {
   latitude: number;
   longitude: number;
   id: string;
+}
+
+interface Location {
+  latitude: number;
+  longitude: number;
 }
 
 interface MRVPractices {
@@ -54,13 +62,20 @@ interface MRVPractices {
 }
 
 const { width, height } = Dimensions.get('window');
-const MAP_HEIGHT = height * 0.5; // 50% of screen height for map
+const MAP_HEIGHT = height * 0.4; // 40% of screen height for map
 
 const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [mapMode, setMapMode] = useState<'satellite' | 'terrain' | 'hybrid'>('satellite');
-  const [drawingMode, setDrawingMode] = useState(false);
   const [selectedCoordinate, setSelectedCoordinate] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [currentRegion, setCurrentRegion] = useState<Region>({
+    latitude: 16.0746492,
+    longitude: 108.2203005,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
+  const [mapReady, setMapReady] = useState(false);
+  const [address, setAddress] = useState<{ road?: string; city?: string; country?: string } | null>(null);
   
   const [formData, setFormData] = useState({
     // Step 1: Plot boundaries
@@ -86,6 +101,7 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
     },
     cooperativeMembership: '',
     trainingCompleted: false,
+    evidenceFiles: [] as Array<{ uri: string; fileName?: string; type?: string }>,
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -94,7 +110,6 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
   
   // Animation values
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const mapHeightAnim = useRef(new Animated.Value(MAP_HEIGHT)).current;
 
   const plotTypeOptions = [
     { label: 'Rice Field', value: 'RICE_FIELD' },
@@ -140,6 +155,9 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
       duration: 800,
       useNativeDriver: true,
     }).start();
+    
+    // Get current location on mount
+    getCurrentLocation();
   }, []);
 
   // Calculate area from coordinates using Shoelace formula
@@ -157,10 +175,11 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
-    
-    if (formData.plotCoordinates.length < 3) {
-      newErrors.plotCoordinates = 'At least 3 points needed to form an area';
-    }
+    console.log('Form data:', formData.plotCoordinates);
+    // Require exactly one selected location and a resolved address
+    if (formData.plotCoordinates.length === 0) {
+      newErrors.plotCoordinates = 'Please select a location on the map';
+    } 
     if (!formData.plotName.trim()) {
       newErrors.plotName = 'Land name is required';
     }
@@ -222,34 +241,83 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
   };
 
   const toggleMapExpansion = () => {
-    const newHeight = isMapExpanded ? MAP_HEIGHT : height * 0.8;
-    
-    Animated.timing(mapHeightAnim, {
-      toValue: newHeight,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-    
     setIsMapExpanded(!isMapExpanded);
   };
 
+  const getCurrentLocation = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        const auth = await Geolocation.requestAuthorization('whenInUse');
+        if (auth !== 'granted') {
+          Alert.alert('Permission Denied', 'Location permission is required');
+          return;
+        }
+      } else {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'AgriCred needs access to your location',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission Denied', 'Location permission is required');
+          return;
+        }
+      }
+
+      Geolocation.getCurrentPosition(
+        position => {
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setSelectedLocation(location);
+          setCurrentRegion({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        },
+        error => {
+          console.error(error);
+          Alert.alert('Error', 'Could not get your location');
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const addCoordinate = () => {
-    // Mock coordinate for demo - in real app, this would come from GPS/map tap
-    const newCoord: PlotCoordinates = {
-      id: Date.now().toString(),
-      latitude: 10.762622 + (Math.random() - 0.5) * 0.02,
-      longitude: 106.660172 + (Math.random() - 0.5) * 0.02,
-    };
-    
-    const newCoordinates = [...formData.plotCoordinates, newCoord];
-    const calculatedArea = calculateArea(newCoordinates);
-    
-    setFormData(prev => ({
-      ...prev,
-      plotCoordinates: newCoordinates,
-      calculatedArea,
-      totalArea: calculatedArea.toFixed(2),
-    }));
+    if (selectedLocation) {
+      const newCoord: PlotCoordinates = {
+        id: Date.now().toString(),
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
+      };
+      
+      // Keep only one coordinate as per requirement
+      const newCoordinates = [newCoord];
+      const calculatedArea = calculateArea(newCoordinates);
+      
+      setFormData(prev => ({
+        ...prev,
+        plotCoordinates: newCoordinates,
+        calculatedArea,
+        totalArea: calculatedArea.toFixed(2),
+      }));
+      
+      // Reset selected location after adding
+      setSelectedLocation(null);
+    } else {
+      Alert.alert('No Location Selected', 'Please select a location on the map first');
+    }
   };
 
   const removeCoordinate = (id: string) => {
@@ -267,35 +335,70 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
   const handleCreateRecord = async () => {
     setLoading(true);
     try {
-      const payload = {
-        plot_boundaries: {
-          plotName: formData.plotName,
-          plotType: formData.plotType,
-          plotCoordinates: formData.plotCoordinates,
-          totalArea: Number(formData.totalArea),
-          calculatedArea: formData.calculatedArea,
-          satelliteImageUrl: formData.satelliteImageUrl || undefined,
-        },
-        mrv_practices: {
-          riceAWD: {
-            area: Number(formData.riceAWD.area),
-            sowingDate: formData.riceAWD.sowingDate.toISOString().split('T')[0],
-            wetDryCycle: formData.riceAWD.wetDryCycle,
-            strawManagement: formData.riceAWD.strawManagement,
-          },
-          agroforestry: {
-            area: Number(formData.agroforestry.area) || 0,
-            treeDensity: Number(formData.agroforestry.treeDensity) || 0,
-            treeSpecies: formData.agroforestry.treeSpecies,
-            intercroppingCrops: formData.agroforestry.intercroppingCrops,
-          },
-          cooperativeMembership: formData.cooperativeMembership,
-          trainingCompleted: formData.trainingCompleted,
-        },
+      const mapPlotTypeToBackend = (value: string): 'rice' | 'agroforestry' | 'mixed' => {
+        switch (value) {
+          case 'RICE_FIELD':
+            return 'rice';
+          case 'AGROFORESTRY':
+            return 'agroforestry';
+          default:
+            return 'mixed';
+        }
       };
 
-      console.log('Creating record with:', payload);
-      // const response = await api.post('/farm-profiles', payload);
+      const deriveIrrigationType = (wetDryCycle: string): 'AWD' | 'Flood irrigation' | 'Sprinkler' => {
+        if (!wetDryCycle) return 'Flood irrigation';
+        return wetDryCycle === 'CONTINUOUS' ? 'Flood irrigation' : 'AWD';
+      };
+
+      const payloadBase: any = {
+        plot_name: formData.plotName,
+        plot_type: mapPlotTypeToBackend(formData.plotType),
+        area_hectares: Number(formData.totalArea),
+        boundary_coordinates: formData.plotCoordinates.map(c => ({ lat: c.latitude, lng: c.longitude })),
+        gps_latitude: currentRegion?.latitude,
+        gps_longitude: currentRegion?.longitude,
+        primary_crop_type: formData.plotType ? mapPlotTypeToBackend(formData.plotType) : '',
+        irrigation_type: deriveIrrigationType(formData.riceAWD.wetDryCycle),
+        soil_type: '',
+        awd_cycles_per_season: formData.riceAWD.wetDryCycle ? 1 : 0,
+        water_management_method: formData.riceAWD.wetDryCycle || '',
+        straw_management: formData.riceAWD.strawManagement || '',
+        tree_density_per_hectare: Number(formData.agroforestry.treeDensity) || 0,
+        tree_species: formData.agroforestry.treeSpecies || [],
+        intercrop_species: formData.agroforestry.intercroppingCrops || [],
+        rice_sowing_date: formData.riceAWD?.sowingDate?.toISOString().split('T')[0],
+        planting_date: undefined,
+      };
+
+      let submission: any = payloadBase;
+      const hasFiles = formData.evidenceFiles && formData.evidenceFiles.length > 0;
+      if (hasFiles) {
+        const fd = new FormData();
+        Object.entries(payloadBase).forEach(([key, value]) => {
+          if (value === undefined || value === null) return;
+          if (Array.isArray(value)) {
+            // Send arrays as JSON strings to simplify server parsing on multipart
+            fd.append(key, JSON.stringify(value));
+          } else if (typeof value === 'object') {
+            fd.append(key, JSON.stringify(value));
+          } else {
+            fd.append(key, String(value));
+          }
+        });
+        formData.evidenceFiles.forEach((file, idx) => {
+          // @ts-ignore: React Native FormData file
+          fd.append('evidence_files[]', {
+            uri: file.uri,
+            name: file.fileName || `evidence_${idx + 1}.jpg`,
+            type: file.type || 'image/jpeg',
+          });
+        });
+        submission = fd;
+      }
+
+      console.log('Creating record with:', payloadBase, hasFiles ? '(multipart with files)' : '(json)');
+      await dashboardApi.createPlot(submission);
       
       Alert.alert(
         'Success',
@@ -316,6 +419,26 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePickEvidence = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        selectionLimit: 5,
+        includeBase64: false,
+      });
+      if (result.assets && result.assets.length > 0) {
+        const files = result.assets
+          .filter(a => !!a.uri)
+          .map(a => ({ uri: a.uri as string, fileName: a.fileName, type: a.type }));
+        setFormData(prev => ({ ...prev, evidenceFiles: files }));
+      }
+    } catch (e) {
+      console.error('Pick evidence error', e);
+      Alert.alert('Error', 'Failed to select images');
     }
   };
 
@@ -357,32 +480,6 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
 
   const renderMapControls = () => (
     <View style={styles.mapControls}>
-      <View style={styles.mapModeSelector}>
-        <TouchableOpacity
-          style={[styles.mapModeButton, mapMode === 'satellite' && styles.mapModeButtonActive]}
-          onPress={() => setMapMode('satellite')}>
-          <Icon name="satellite-variant" size={16} color={
-            mapMode === 'satellite' ? theme.colors.white : theme.colors.primary
-          } />
-          <Text style={[
-            styles.mapModeText,
-            mapMode === 'satellite' && styles.mapModeTextActive
-          ]}>Satellite</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.mapModeButton, mapMode === 'terrain' && styles.mapModeButtonActive]}
-          onPress={() => setMapMode('terrain')}>
-          <Icon name="terrain" size={16} color={
-            mapMode === 'terrain' ? theme.colors.white : theme.colors.primary
-          } />
-          <Text style={[
-            styles.mapModeText,
-            mapMode === 'terrain' && styles.mapModeTextActive
-          ]}>Terrain</Text>
-        </TouchableOpacity>
-      </View>
-      
       <TouchableOpacity
         style={styles.expandMapButton}
         onPress={toggleMapExpansion}>
@@ -395,43 +492,99 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
     </View>
   );
 
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'AgriCred/1.0'
+        }
+      });
+      const json = await res.json();
+      const addr = json?.address || {};
+      setAddress({
+        road: addr.road || addr.neighbourhood || addr.suburb || undefined,
+        city: addr.city || addr.town || addr.village || addr.county || undefined,
+        country: addr.country || undefined,
+      });
+    } catch (e) {
+      console.warn('Reverse geocode failed', e);
+      setAddress(null);
+    }
+  };
+
   const renderMapView = () => (
-    <Animated.View style={[styles.mapContainer, { height: mapHeightAnim }]}>
-      <LinearGradient
-        colors={[theme.colors.primary + '20', theme.colors.info + '20']}
-        style={styles.mapGradient}>
-        
+    <View style={[styles.mapContainer, { height: isMapExpanded ? height * 0.8 : MAP_HEIGHT }]}>
+        {/* Interactive Map */}
         {renderMapControls()}
-        
-        {/* Mock Map View */}
-        <View style={styles.mockMap}>
-          <View style={styles.mapOverlay}>
-            <Icon name="map-marker" size={40} color={theme.colors.primary} />
-            <Text style={styles.mapOverlayText}>Interactive Map</Text>
-            <Text style={styles.mapOverlaySubtext}>
-              Tap to add land boundary points
-            </Text>
-          </View>
+        <View style={styles.mapWrapper}>
+          <MapView
+            style={styles.map}
+            region={currentRegion}
+            onMapReady={() => setMapReady(true)}
+            onPress={(e) => {
+              const location = e.nativeEvent.coordinate;
+              setSelectedLocation(location);
+              reverseGeocode(location.latitude, location.longitude);
+            }}
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            showsCompass={true}
+            showsScale={true}
+          >
+            {/* Selected location marker */}
+            {selectedLocation && (
+              <Marker
+                coordinate={selectedLocation}
+                pinColor={theme.colors.primary}
+                title="Selected Point"
+                description="Tap 'Add Point' to add this location"
+              />
+            )}
+            
+            {/* Existing boundary points */}
+            {formData.plotCoordinates.map((coord, index) => (
+              <Marker
+                key={coord.id}
+                coordinate={coord}
+                pinColor={theme.colors.success}
+                title={`Point ${index + 1}`}
+                description={`${coord.latitude.toFixed(6)}, ${coord.longitude.toFixed(6)}`}
+              />
+            ))}
+          </MapView>
           
-          {/* Plot coordinates visualization */}
-          {formData.plotCoordinates.map((coord, index) => (
-            <TouchableOpacity
-              key={coord.id}
-              style={[
-                styles.coordinateMarker,
-                {
-                  left: `${20 + (index * 15) % 60}%`,
-                  top: `${30 + (index * 20) % 40}%`,
-                },
-                selectedCoordinate === coord.id && styles.coordinateMarkerSelected
-              ]}
-              onPress={() => setSelectedCoordinate(
-                selectedCoordinate === coord.id ? null : coord.id
-              )}>
-              <Text style={styles.coordinateMarkerText}>{index + 1}</Text>
-            </TouchableOpacity>
-          ))}
+          {/* Current location button */}
+          <TouchableOpacity
+            style={styles.currentLocationButton}
+            onPress={getCurrentLocation}>
+            <Icon name="crosshairs-gps" size={20} color={theme.colors.white} />
+          </TouchableOpacity>
         </View>
+        
+        {/* Plot coordinates visualization */}
+        {formData.plotCoordinates.length > 0 && (
+          <View style={styles.coordinatesOverlay}>
+            <Text style={styles.coordinatesOverlayTitle}>
+              Boundary Points: {formData.plotCoordinates.length}
+            </Text>
+            <View style={styles.coordinatesGrid}>
+              {formData.plotCoordinates.map((coord, index) => (
+                <TouchableOpacity
+                  key={coord.id}
+                  style={[
+                    styles.coordinateMarker,
+                    selectedCoordinate === coord.id && styles.coordinateMarkerSelected
+                  ]}
+                  onPress={() => setSelectedCoordinate(
+                    selectedCoordinate === coord.id ? null : coord.id
+                  )}>
+                  <Text style={styles.coordinateMarkerText}>{index + 1}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
         
         {/* Map Action Buttons */}
         <View style={styles.mapActions}>
@@ -439,7 +592,6 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
             style={[styles.mapActionButton, styles.addPointButton]}
             onPress={addCoordinate}>
             <Icon name="plus" size={20} color={theme.colors.white} />
-            <Text style={styles.mapActionText}>Add Point</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -451,68 +603,50 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
               totalArea: '' 
             }))}>
             <Icon name="delete" size={20} color={theme.colors.error} />
-            <Text style={[styles.mapActionText, { color: theme.colors.error }]}>Clear All</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
-    </Animated.View>
+    </View>
   );
 
   const renderCoordinatesList = () => (
     <View style={styles.coordinatesSection}>
       <View style={styles.coordinatesHeader}>
-        <Text style={styles.coordinatesTitle}>
-          Boundary Points ({formData.plotCoordinates.length})
-        </Text>
-        {formData.calculatedArea > 0 && (
-          <View style={styles.areaChip}>
-            <Icon name="ruler-square" size={14} color={theme.colors.success} />
-            <Text style={styles.areaChipText}>
-              {formData.calculatedArea.toFixed(2)} ha
-            </Text>
-          </View>
-        )}
+        <Text style={styles.coordinatesTitle}>Selected Address</Text>
       </View>
-      
-      {formData.plotCoordinates.length === 0 ? (
+      {(!address && formData.plotCoordinates.length === 0) && (
         <View style={styles.emptyCoordinates}>
           <Icon name="map-marker-plus" size={32} color={theme.colors.textLight} />
-          <Text style={styles.emptyCoordinatesText}>
-            No boundary points yet
-          </Text>
-          <Text style={styles.emptyCoordinatesSubtext}>
-            Tap on the map or "Add Point" button to start
-          </Text>
+          <Text style={styles.emptyCoordinatesText}>No address selected</Text>
+          <Text style={styles.emptyCoordinatesSubtext}>Tap on the map to pick a location</Text>
         </View>
-      ) : (
-        <ScrollView style={styles.coordinatesList} nestedScrollEnabled>
-          {formData.plotCoordinates.map((coord, index) => (
-            <View key={coord.id} style={styles.coordinateItem}>
-              <View style={styles.coordinateInfo}>
-                <View style={styles.coordinateIndex}>
-                  <Text style={styles.coordinateIndexText}>{index + 1}</Text>
-                </View>
-                <View style={styles.coordinateDetails}>
-                  <Text style={styles.coordinateText}>
-                    {coord.latitude.toFixed(6)}, {coord.longitude.toFixed(6)}
-                  </Text>
-                  <Text style={styles.coordinateLabel}>
-                    Latitude, Longitude
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.removeCoordinateButton}
-                onPress={() => removeCoordinate(coord.id)}>
-                <Icon name="close" size={20} color={theme.colors.error} />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
       )}
-      
-      {errors.plotCoordinates && (
-        <Text style={styles.errorText}>{errors.plotCoordinates}</Text>
+      {(address || formData.plotCoordinates.length > 0) && (
+        <View>
+          <View style={styles.coordinateItem}>
+            <View style={styles.coordinateInfo}>
+              <View style={styles.coordinateDetails}>
+                <Text style={styles.coordinateText}>Road/Street</Text>
+                <Text style={styles.coordinateLabel}>{address?.road || '—'}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.coordinateItem}>
+            <View style={styles.coordinateInfo}>
+              <View style={styles.coordinateDetails}>
+                <Text style={styles.coordinateText}>City</Text>
+                <Text style={styles.coordinateLabel}>{address?.city || '—'}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.coordinateItem}>
+            <View style={styles.coordinateInfo}>
+              <View style={styles.coordinateDetails}>
+                <Text style={styles.coordinateText}>Country</Text>
+                <Text style={styles.coordinateLabel}>{address?.country || '—'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -529,15 +663,16 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
           }), 1) }]
         }
       ]}>
-      
-      {renderMapView()}
+        {/* {renderMapView()}
+      <View style={styles.formSectionMap}>
+        {renderCoordinatesList()}
+      </View> */}
       
       <View style={styles.formSection}>
         <View style={styles.sectionHeader}>
           <Icon name="map-marker-outline" size={24} color={theme.colors.primary} />
           <Text style={styles.sectionTitle}>Land Information</Text>
         </View>
-        
         <InputCustom
           label="Land Name"
           placeholder="E.g: Rice field area A"
@@ -558,8 +693,6 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
           required
         />
 
-        {renderCoordinatesList()}
-
         <InputCustom
           label="Total Area (ha)"
           placeholder="Enter land area"
@@ -571,12 +704,31 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
           leftIcon="ruler-square"
           rightIcon={formData.calculatedArea > 0 ? "calculator" : undefined}
         />
+         <LocationPicker  
+          label="Address"
+          value={formData.plotCoordinates[0]}
+          onChange={location => {
+            setSelectedLocation(location);
+            updateFormData('gps_location', `${location.latitude},${location.longitude}`);
+            updateFormData('gps_latitude', String(location.latitude));
+            updateFormData('gps_longitude', String(location.longitude));
+            setFormData(prev => ({
+              ...prev,
+              plotCoordinates: [{ id: Date.now().toString(), latitude: location.latitude, longitude: location.longitude }],
+              calculatedArea: 0,
+              totalArea: '',
+            }));
+          }}
+          onAddressChange={(addr) => updateFormData('address', addr || '')}
+          error={errors.gps_location || errors.address}
+          required
+        />
 
-        <ImagePicker
+        {/* <ImagePicker
           label="Satellite Image (Optional)"
           imageUri={formData.satelliteImageUrl}
           onImageSelected={uri => updateFormData('satelliteImageUrl', uri)}
-        />
+        /> */}
       </View>
     </Animated.View>
   );
@@ -752,6 +904,12 @@ const CreateRecordScreen: React.FC<CreateRecordScreenProps> = ({ navigation }) =
                 </View>
               ))}
             </View>
+            <View style={{ marginTop: 16 }}>
+              <ButtonCustom
+                title={formData.evidenceFiles.length > 0 ? `Evidence Photos: ${formData.evidenceFiles.length} selected` : 'Add Evidence Photos'}
+                onPress={handlePickEvidence}
+              />
+            </View>
           </View>
       </View>
     </View>
@@ -901,8 +1059,6 @@ const styles = StyleSheet.create({
   // Map Styles
   mapContainer: {
     marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    borderRadius: 20,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
@@ -916,6 +1072,59 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  mapWrapper: {
+    flex: 1,
+    position: 'relative',
+    margin: 0,
+    overflow: 'hidden',
+  },
+  map: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  currentLocationButton: {
+    position: 'absolute',
+    bottom: theme.spacing.md,
+    right: theme.spacing.md,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  coordinatesOverlay: {
+    position: 'absolute',
+    top: theme.spacing.md,
+    right: theme.spacing.md,
+    backgroundColor: theme.colors.white + 'E6',
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.lg,
+    maxWidth: 200,
+  },
+  coordinatesOverlayTitle: {
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  coordinatesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+  },
   mapGradient: {
     flex: 1,
     position: 'relative',
@@ -923,38 +1132,10 @@ const styles = StyleSheet.create({
   mapControls: {
     position: 'absolute',
     top: theme.spacing.md,
-    left: theme.spacing.md,
     right: theme.spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     zIndex: 10,
   },
-  mapModeSelector: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.white + 'E6',
-    borderRadius: theme.borderRadius.lg,
-    padding: 4,
-  },
-  mapModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.xs,
-  },
-  mapModeButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  mapModeText: {
-    fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary,
-    fontFamily: theme.typography.fontFamily.medium,
-  },
-  mapModeTextActive: {
-    color: theme.colors.white,
-  },
+
   expandMapButton: {
     width: 40,
     height: 40,
@@ -963,36 +1144,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  mockMap: {
-    flex: 1,
-    backgroundColor: theme.colors.info + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  mapOverlay: {
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-  },
-  mapOverlayText: {
-    fontSize: theme.typography.fontSize.lg,
-    fontFamily: theme.typography.fontFamily.bold,
-    color: theme.colors.text,
-  },
-  mapOverlaySubtext: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textLight,
-    textAlign: 'center',
-  },
+
   coordinateMarker: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: theme.colors.white,
   },
   coordinateMarkerSelected: {
@@ -1006,7 +1166,7 @@ const styles = StyleSheet.create({
   },
   mapActions: {
     position: 'absolute',
-    bottom: theme.spacing.md,
+    bottom: theme.spacing.lg,
     left: theme.spacing.md,
     right: theme.spacing.md,
     flexDirection: 'row',
@@ -1017,7 +1177,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
     borderRadius: theme.borderRadius.lg,
     gap: theme.spacing.sm,
   },
@@ -1036,6 +1196,25 @@ const styles = StyleSheet.create({
   },
 
   // Form Styles
+  formSectionMap: {
+    backgroundColor: theme.colors.white,
+    marginHorizontal: theme.spacing.lg,
+    padding: theme.spacing.xl,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: theme.spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
   formSection: {
     backgroundColor: theme.colors.white,
     marginHorizontal: theme.spacing.lg,
@@ -1073,7 +1252,7 @@ const styles = StyleSheet.create({
 
   // Coordinates Section
   coordinatesSection: {
-    marginVertical: theme.spacing.lg,
+    // marginVertical: theme.spacing.lg,
   },
   coordinatesHeader: {
     flexDirection: 'row',

@@ -172,7 +172,7 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
             mrvScores: { carbonPerformance: 0, mrvReliability: 0, grade: 'N/A' },
             blockchainAnchor: { hash: '', timestamp: '', reportUrl: '' },
           },
-          farmer: { name: 'Unknown', phone: '', email: '', cooperative: '' },
+          farmer: { name: 'Unknown', phone: '', email: '', cooperative: '', avatar: '' },
         });
       } finally {
         setLoading(false);
@@ -251,7 +251,78 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
               </Text>
             </View>
           )}
+  {/* MRV Calculation Results */}
+  <View style={[styles.section, styles.elevation]}>
+            <View style={styles.sectionHeader}>
+              <Icon name="file-document" size={24} color={theme.colors.primary} />
+              <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
+            </View>
 
+            {/* Total Carbon Impact & Carbon Badge */}
+            <View style={styles.carbonOverview}>
+              <View style={styles.carbonImpact}>
+                <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
+                <Text style={styles.carbonImpactValue}>{plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                <Text style={styles.carbonImpactUnit}>per season</Text>
+              </View>
+              <View style={styles.carbonBadge}>
+                <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>Grade A</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Carbon Performance (CP) */}
+            <View style={styles.performanceSection}>
+              <View style={styles.performanceHeader}>
+                <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
+                <Text style={styles.performanceScore}>{plot.mrvData.mrvScores.carbonPerformance}/100</Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
+              </View>
+              <View style={styles.performanceBreakdown}>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Rice AWD: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                </View>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Agroforestry: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* MRV Reliability (MR) */}
+            <View style={styles.reliabilitySection}>
+              <View style={styles.reliabilityHeader}>
+                <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
+                <Text style={styles.reliabilityScore}>{plot.mrvData.mrvScores.mrvReliability}/100</Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
+              </View>
+              <View style={styles.reliabilityBreakdown}>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Rice evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (photos + GPS + diary)</Text>
+                </View>
+                <View style={styles.breakdownItem}>
+                  <Text style={styles.breakdownText}>Agroforestry evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (tree coverage)</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Blockchain Anchor & View MRV Report */}
+            <View style={styles.blockchainSection}>
+              <View style={styles.blockchainHeader}>
+                <Text style={styles.blockchainHeaderLabel}># Blockchain Anchor</Text>
+              </View>
+              <Text style={styles.blockchainHash}>{plot.mrvData.blockchainAnchor.hash || 'N/A'}</Text>
+              <TouchableOpacity style={styles.mrvReportButton} onPress={() => Linking.openURL(plot.mrvData.blockchainAnchor.reportUrl)}>
+                <Icon name="earth" size={16} color={theme.colors.white} />
+                <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           {/* Plot Information */}
           <View style={[styles.section, styles.elevation]}>
             <View style={styles.sectionHeader}>
@@ -386,78 +457,7 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
               </MapView>
             </View>
           </View>
-          {/* MRV Calculation Results */}
-          <View style={[styles.section, styles.elevation]}>
-            <View style={styles.sectionHeader}>
-              <Icon name="file-document" size={24} color={theme.colors.primary} />
-              <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
-            </View>
-
-            {/* Total Carbon Impact & Carbon Badge */}
-            <View style={styles.carbonOverview}>
-              <View style={styles.carbonImpact}>
-                <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
-                <Text style={styles.carbonImpactValue}>{plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
-                <Text style={styles.carbonImpactUnit}>per season</Text>
-              </View>
-              <View style={styles.carbonBadge}>
-                <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeText}>Grade A</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Carbon Performance (CP) */}
-            <View style={styles.performanceSection}>
-              <View style={styles.performanceHeader}>
-                <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
-                <Text style={styles.performanceScore}>{plot.mrvData.mrvScores.carbonPerformance}/100</Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
-              </View>
-              <View style={styles.performanceBreakdown}>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Rice AWD: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
-                </View>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Agroforestry: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* MRV Reliability (MR) */}
-            <View style={styles.reliabilitySection}>
-              <View style={styles.reliabilityHeader}>
-                <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
-                <Text style={styles.reliabilityScore}>{plot.mrvData.mrvScores.mrvReliability}/100</Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
-              </View>
-              <View style={styles.reliabilityBreakdown}>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Rice evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (photos + GPS + diary)</Text>
-                </View>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Agroforestry evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (tree coverage)</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Blockchain Anchor & View MRV Report */}
-            <View style={styles.blockchainSection}>
-              <View style={styles.blockchainHeader}>
-                <Text style={styles.blockchainHeaderLabel}># Blockchain Anchor</Text>
-              </View>
-              <Text style={styles.blockchainHash}>{plot.mrvData.blockchainAnchor.hash || 'N/A'}</Text>
-              <TouchableOpacity style={styles.mrvReportButton} onPress={() => Linking.openURL(plot.mrvData.blockchainAnchor.reportUrl)}>
-                <Icon name="earth" size={16} color={theme.colors.white} />
-                <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        
           {/* Farmer Information */}
           <View style={[styles.section, styles.elevation]}>
             <View style={styles.sectionHeader}>
