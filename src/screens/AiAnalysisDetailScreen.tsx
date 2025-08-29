@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   Dimensions,
   Linking,
-  Share
+  Share,
+  Modal
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { getToken } from '../utils/TokenManager';
@@ -20,7 +21,7 @@ import { theme } from '../theme/colors';
 import Header from '../component/Header';
 import Card from '../component/Card';
 import Badge from '../component/Badge';
-import { aiApi } from '../utils/Api';
+import api, { aiApi } from '../utils/Api';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
@@ -96,6 +97,7 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
   const [reportToken, setReportToken] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -121,13 +123,20 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const creditImpact = detail?.credit_impact ?? 0;
 
   const handleDownloadReport = async () => {
-    const url = aiApi.getReportUrl(analysisId);
-    const token = await getToken();
-    if (url && token) {
-      setReportToken(token);
-      setReportVisible(true);
-    } else if (url) {
-      Linking.openURL(url).catch(() => {});
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      // 1. Lấy PDF URL
+      const response = await api.get(`/ai/analyses/${analysisId}/report`);
+      const { pdf_url } = response.data.data;
+      
+      if (pdf_url) {
+        setPdfUrl(pdf_url);
+        setReportVisible(true);
+      }
+    } catch (e) {
+      console.error('Error fetching report:', e);
     }
   };
 
@@ -426,21 +435,33 @@ const AiAnalysisDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
         </ScrollView>
       </LinearGradient>
-      {reportVisible && (
-        <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: theme.colors.white }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-            <TouchableOpacity onPress={() => setReportVisible(false)} style={{ padding: 8 }}>
-              <Icon name="close" size={20} color={theme.colors.text} />
+      <Modal
+        visible={reportVisible}
+        onRequestClose={() => setReportVisible(false)}
+        animationType="slide"
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => setReportVisible(false)} style={styles.closeButton}>
+              <Icon name="close" size={24} color="#333" />
             </TouchableOpacity>
-            <Text style={{ marginLeft: 8, fontFamily: theme.typography.fontFamily.medium, color: theme.colors.text }}>Report</Text>
+            <Text style={styles.headerTitle}>AI Analysis Report</Text>
+            <View style={styles.placeholder} />
           </View>
-          <WebView
-            source={{ uri: aiApi.getReportUrl(analysisId), headers: reportToken ? { Authorization: `Bearer ${reportToken}` } : {} }}
-            style={{ flex: 1 }}
-            startInLoadingState
-          />
-        </View>
-      )}
+          {pdfUrl ? (
+            <WebView
+              source={{ uri: pdfUrl || '' }}
+              style={{ flex: 1, backgroundColor: theme.colors.white,}}
+              
+              startInLoadingState
+            />
+          ) : (
+            <View style={styles.loadingContainer}>
+              <Text>Loading report...</Text>
+            </View>
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -846,6 +867,33 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: theme.colors.primary,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.white,
+  },
+  closeButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+  },
+  placeholder: {
+    width: 44,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
   },
 });
 

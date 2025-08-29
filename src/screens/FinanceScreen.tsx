@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Platform,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { theme } from '../theme/colors';
 import Header from '../component/Header';
@@ -23,6 +24,7 @@ import Animated, {
   FadeInRight,
 } from 'react-native-reanimated';
 import { createShimmerPlaceholder } from 'react-native-shimmer-placeholder';
+import api from '../utils/Api';
 
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CompositeScreenProps } from '@react-navigation/native';
@@ -43,28 +45,50 @@ interface VerificationStage {
   stage: string;
   status: 'completed' | 'in_progress' | 'pending';
   date: string | null;
+  progress: number;
 }
 
 interface PaymentRecord {
+  id: number;
   date: string;
   amount: number;
   credits: number;
   status: 'paid' | 'pending' | 'failed';
+  transaction_id: string;
+}
+
+interface CarbonCredits {
+  verified: number;
+  pending: number;
+  totalValue: number;
+  pricePerCredit: number;
+  totalCredits: number;
+}
+
+interface ProjectedEarnings {
+  nextQuarter: number;
+  nextYear: number;
+  nextMonth: number;
+  growthRate: number;
+  marketTrend: 'up' | 'down' | 'stable';
+}
+
+interface PerformanceMetrics {
+  creditsSold: number;
+  averagePrice: number;
+  verificationSuccessRate: number;
+  marketDemand: 'high' | 'medium' | 'low';
+  priceTrend: 'up' | 'down' | 'stable';
 }
 
 interface FinanceData {
-  carbonCredits: {
-    verified: number;
-    pending: number;
-    totalValue: number;
-    pricePerCredit: number;
-  };
+  carbonCredits: CarbonCredits;
   verificationPipeline: VerificationStage[];
   paymentHistory: PaymentRecord[];
-  projectedEarnings: {
-    nextQuarter: number;
-    nextYear: number;
-  };
+  projectedEarnings: ProjectedEarnings;
+  performanceMetrics: PerformanceMetrics;
+  monthlyChange: number;
+  successRate: number;
 }
 
 const FinanceScreen: React.FC<Props> = ({
@@ -76,32 +100,169 @@ const FinanceScreen: React.FC<Props> = ({
 
   const [financeData, setFinanceData] = useState<FinanceData>({
     carbonCredits: {
-      verified: 45,
-      pending: 23,
-      totalValue: 1580, // USD
-      pricePerCredit: 35
+      verified: 0,
+      pending: 0,
+      totalValue: 0,
+      pricePerCredit: 0,
+      totalCredits: 0
     },
-    verificationPipeline: [
-      { stage: "MRV Declaration", status: "completed", date: "2024-02-01" },
-      { stage: "Field Verification", status: "in_progress", date: "2024-02-15" },
-      { stage: "Third-party Audit", status: "pending", date: null },
-      { stage: "Credit Issuance", status: "pending", date: null },
-      { stage: "Market Trading", status: "pending", date: null }
-    ],
-    paymentHistory: [
-      { date: "2024-01-15", amount: 875, credits: 25, status: "paid" },
-      { date: "2023-12-15", amount: 700, credits: 20, status: "paid" }
-    ],
+    verificationPipeline: [],
+    paymentHistory: [],
     projectedEarnings: {
-      nextQuarter: 1200,
-      nextYear: 4800
-    }
+      nextQuarter: 0,
+      nextYear: 0,
+      nextMonth: 0,
+      growthRate: 0,
+      marketTrend: 'stable'
+    },
+    performanceMetrics: {
+      creditsSold: 0,
+      averagePrice: 0,
+      verificationSuccessRate: 0,
+      marketDemand: 'medium',
+      priceTrend: 'stable'
+    },
+    monthlyChange: 0,
+    successRate: 0
   });
 
+  // Fetch carbon portfolio data
+  const fetchPortfolio = async () => {
+    try {
+      const response = await api.get('/finance/portfolio');
+      console.log('Portfolio response:', response.data);
+      const data = response.data.data;
+      
+      setFinanceData(prev => ({
+        ...prev,
+        carbonCredits: {
+          verified: data.carbon_credits.verified || 0,
+          pending: data.carbon_credits.pending || 0,
+          totalValue: data.carbon_credits.total_value || 0,
+          pricePerCredit: data.carbon_credits.price_per_credit || 0,
+          totalCredits: data.carbon_credits.total_credits || 0
+        },
+        monthlyChange: data.monthly_change || 0,
+        successRate: data.success_rate || 0
+      }));
+    } catch (error: any) {
+      console.error('Error fetching portfolio:', error.response?.data || error);
+    }
+  };
+
+  // Fetch verification pipeline
+  const fetchVerificationPipeline = async () => {
+    try {
+      const response = await api.get('/finance/verification-pipeline');
+      console.log('Pipeline response:', response.data);
+      const data = response.data.data;
+      
+      const pipelineStages = data.stages.map((stage: any) => ({
+        stage: stage.stage,
+        status: stage.status,
+        date: stage.date,
+        progress: stage.progress || 0
+      }));
+      
+      setFinanceData(prev => ({
+        ...prev,
+        verificationPipeline: pipelineStages
+      }));
+    } catch (error: any) {
+      console.error('Error fetching verification pipeline:', error.response?.data || error);
+    }
+  };
+
+  // Fetch payment history
+  const fetchPaymentHistory = async () => {
+    try {
+      const response = await api.get('/finance/payment-history?limit=10');
+      console.log('Payment history response:', response.data);
+      const data = response.data.data;
+      
+      const payments = data.payments.map((payment: any) => ({
+        id: payment.id,
+        date: payment.date,
+        amount: payment.amount,
+        credits: payment.credits,
+        status: payment.status,
+        transaction_id: payment.transaction_id
+      }));
+      
+      setFinanceData(prev => ({
+        ...prev,
+        paymentHistory: payments
+      }));
+    } catch (error: any) {
+      console.error('Error fetching payment history:', error.response?.data || error);
+    }
+  };
+
+  // Fetch projected earnings
+  const fetchProjectedEarnings = async () => {
+    try {
+      const response = await api.get('/finance/projected-earnings');
+      console.log('Projected earnings response:', response.data);
+      const data = response.data.data;
+      
+      setFinanceData(prev => ({
+        ...prev,
+        projectedEarnings: {
+          nextQuarter: data.projections.next_quarter || 0,
+          nextYear: data.projections.next_year || 0,
+          nextMonth: data.projections.next_month || 0,
+          growthRate: data.growth_rate || 0,
+          marketTrend: data.market_trend || 'stable'
+        }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching projected earnings:', error.response?.data || error);
+    }
+  };
+
+  // Fetch performance metrics
+  const fetchPerformanceMetrics = async () => {
+    try {
+      const response = await api.get('/finance/performance-metrics');
+      console.log('Performance metrics response:', response.data);
+      const data = response.data.data;
+      
+      setFinanceData(prev => ({
+        ...prev,
+        performanceMetrics: {
+          creditsSold: data.metrics.credits_sold || 0,
+          averagePrice: data.metrics.average_price || 0,
+          verificationSuccessRate: data.metrics.verification_success_rate || 0,
+          marketDemand: data.metrics.market_demand || 'medium',
+          priceTrend: data.metrics.price_trend || 'stable'
+        }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching performance metrics:', error.response?.data || error);
+    }
+  };
+
+  // Fetch all data on component mount
   useEffect(() => {
-    setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    const fetchAllData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchPortfolio(),
+          fetchVerificationPipeline(),
+          fetchPaymentHistory(),
+          fetchProjectedEarnings(),
+          fetchPerformanceMetrics(),
+        ]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        Alert.alert('Error', 'Failed to load finance data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
   }, []);
 
   const getStatusColor = (status: string) => {
@@ -185,10 +346,23 @@ const FinanceScreen: React.FC<Props> = ({
                   </View>
                   <View style={styles.portfolioInfo}>
                     <Text style={styles.portfolioTitle}>Portfolio Value</Text>
-                    <View style={styles.trendContainer}>
-                      <Icon name="trending-up" size={16} color={theme.colors.success} />
-                      <Text style={styles.trendText}>+12.5% this month</Text>
-                    </View>
+                                      <View style={styles.trendContainer}>
+                    <Icon 
+                      name={financeData.projectedEarnings.marketTrend === 'up' ? 'trending-up' : financeData.projectedEarnings.marketTrend === 'down' ? 'trending-down' : 'minus'} 
+                      size={16} 
+                      color={financeData.projectedEarnings.marketTrend === 'up' ? theme.colors.success : financeData.projectedEarnings.marketTrend === 'down' ? theme.colors.error : theme.colors.textLight} 
+                    />
+                    <Text style={[
+                      styles.trendText, 
+                      { 
+                        color: financeData.projectedEarnings.marketTrend === 'up' ? theme.colors.success : 
+                               financeData.projectedEarnings.marketTrend === 'down' ? theme.colors.error : 
+                               theme.colors.textLight 
+                      }
+                    ]}>
+                      {financeData.projectedEarnings.marketTrend === 'up' ? '+' : ''}{financeData.monthlyChange}% this month
+                    </Text>
+                  </View>
                   </View>
                 </View>
                 <TouchableOpacity style={styles.moreButton}>
@@ -197,8 +371,8 @@ const FinanceScreen: React.FC<Props> = ({
               </View>
 
               <View style={styles.portfolioValueSection}>
-                <Text style={styles.portfolioValue}>$1,847.50</Text>
-                <Text style={styles.portfolioDetails}>@ $52.5/tCO₂e • 20.8 credits</Text>
+                <Text style={styles.portfolioValue}>${financeData.carbonCredits.totalValue.toLocaleString()}</Text>
+                <Text style={styles.portfolioDetails}>@ ${financeData.carbonCredits.pricePerCredit}/tCO₂e • {financeData.carbonCredits.totalCredits} credits</Text>
               </View>
 
               <View style={styles.portfolioStats}>
@@ -209,7 +383,7 @@ const FinanceScreen: React.FC<Props> = ({
                   >
                     <Icon name="check-circle" size={20} color={theme.colors.success} />
                   </LinearGradient>
-                  <Text style={styles.statValue}>12.5</Text>
+                  <Text style={styles.statValue}>{financeData.carbonCredits.verified}</Text>
                   <Text style={styles.statLabel}>Verified Credits</Text>
                   <Text style={styles.statSubtitle}>tCO₂e</Text>
                 </View>
@@ -221,7 +395,7 @@ const FinanceScreen: React.FC<Props> = ({
                   >
                     <Icon name="clock-outline" size={20} color={theme.colors.warning} />
                   </LinearGradient>
-                  <Text style={styles.statValue}>8.3</Text>
+                  <Text style={styles.statValue}>{financeData.carbonCredits.pending}</Text>
                   <Text style={styles.statLabel}>Pending Credits</Text>
                   <Text style={styles.statSubtitle}>Under review</Text>
                 </View>
@@ -233,7 +407,7 @@ const FinanceScreen: React.FC<Props> = ({
                   >
                     <Icon name="chart-line" size={20} color={theme.colors.info} />
                   </LinearGradient>
-                  <Text style={styles.statValue}>95%</Text>
+                  <Text style={styles.statValue}>{financeData.successRate}%</Text>
                   <Text style={styles.statLabel}>Success Rate</Text>
                   <Text style={styles.statSubtitle}>Verification</Text>
                 </View>
@@ -241,80 +415,6 @@ const FinanceScreen: React.FC<Props> = ({
             </Card>
           </Animated.View>
 
-          {/* Enhanced Verification Pipeline */}
-          <Animated.View entering={FadeInDown.duration(600).springify()}>
-            <Card style={[styles.pipelineCard, styles.elevation]}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardTitleSection}>
-                  <View style={styles.cardIconContainer}>
-                    <Icon name="timeline" size={24} color={theme.colors.primary} />
-                  </View>
-                  <View>
-                    <Text style={styles.cardTitle}>Verification Pipeline</Text>
-                    <Text style={styles.cardSubtitle}>Track your credit verification progress</Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.progressSection}>
-                <View style={styles.progressHeader}>
-                  <Text style={styles.progressLabel}>Overall Progress</Text>
-                  <Text style={styles.progressValue}>
-                    {Math.round((financeData.verificationPipeline.filter(s => s.status === 'completed').length / financeData.verificationPipeline.length) * 100)}%
-                  </Text>
-                </View>
-                <View style={styles.progressBarContainer}>
-                  <View style={styles.progressBar}>
-                    <LinearGradient
-                      colors={[theme.colors.primary, theme.colors.primary + '80']}
-                      style={[
-                        styles.progressFill,
-                        {
-                          width: `${(financeData.verificationPipeline.filter(s => s.status === 'completed').length / financeData.verificationPipeline.length) * 100}%`,
-                        }
-                      ]}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.pipelineStages}>
-                {financeData.verificationPipeline.map((stage, index) => (
-                  <View key={stage.stage} style={styles.stageItem}>
-                    <View style={styles.stageLeft}>
-                      <View style={[
-                        styles.stageIconContainer,
-                        { backgroundColor: getStatusColor(stage.status) + '20' }
-                      ]}>
-                        <Icon
-                          name={getStatusIcon(stage.status)}
-                          size={18}
-                          color={getStatusColor(stage.status)}
-                        />
-                      </View>
-                      <View style={styles.stageInfo}>
-                        <Text style={styles.stageName}>{stage.stage}</Text>
-                        {stage.date && (
-                          <Text style={styles.stageDate}>{stage.date}</Text>
-                        )}
-                      </View>
-                    </View>
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(stage.status) + '15' }
-                    ]}>
-                      <Text style={[
-                        styles.statusText,
-                        { color: getStatusColor(stage.status) }
-                      ]}>
-                        {getStatusText(stage.status)}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </Card>
-          </Animated.View>
 
           {/* Enhanced Tabs */}
           <View style={styles.tabsContainer}>
@@ -419,7 +519,7 @@ const FinanceScreen: React.FC<Props> = ({
                     <View style={styles.metricInfo}>
                       <Text style={styles.metricLabel}>Credits Sold</Text>
                       <Text style={styles.metricValue}>
-                        {financeData.paymentHistory.reduce((sum, payment) => sum + payment.credits, 0)}
+                        {financeData.performanceMetrics.creditsSold}
                       </Text>
                     </View>
                   </View>
@@ -431,7 +531,7 @@ const FinanceScreen: React.FC<Props> = ({
                     <View style={styles.metricInfo}>
                       <Text style={styles.metricLabel}>Average Price</Text>
                       <Text style={styles.metricValue}>
-                        ${Math.round(financeData.paymentHistory.reduce((sum, payment) => sum + payment.amount, 0) / financeData.paymentHistory.reduce((sum, payment) => sum + payment.credits, 0))}
+                        ${financeData.performanceMetrics.averagePrice}
                       </Text>
                     </View>
                   </View>
@@ -589,7 +689,7 @@ const FinanceScreen: React.FC<Props> = ({
                     <Text style={styles.projectionValue}>
                       ${financeData.projectedEarnings.nextQuarter.toLocaleString()}
                     </Text>
-                    <Text style={styles.projectionSubtitle}>Q2 2024</Text>
+                    <Text style={styles.projectionSubtitle}>Next Quarter</Text>
                   </View>
 
                   <View style={styles.projectionCard}>
@@ -603,35 +703,9 @@ const FinanceScreen: React.FC<Props> = ({
                     <Text style={styles.projectionValue}>
                       ${financeData.projectedEarnings.nextYear.toLocaleString()}
                     </Text>
-                    <Text style={styles.projectionSubtitle}>2025 Target</Text>
+                    <Text style={styles.projectionSubtitle}>Next Year</Text>
                   </View>
                 </View>
-              </Card>
-
-              {/* Bank Connection CTA */}
-              <Card style={[styles.ctaCard, styles.elevation]}>
-                <LinearGradient
-                  colors={[theme.colors.primary + '10', theme.colors.primary + '05']}
-                  style={styles.ctaBackground}
-                >
-                  <View style={styles.ctaContent}>
-                    <View style={styles.ctaIcon}>
-                      <Icon name="bank" size={32} color={theme.colors.primary} />
-                    </View>
-                    <View style={styles.ctaInfo}>
-                      <Text style={styles.ctaTitle}>Connect with Banks</Text>
-                      <Text style={styles.ctaDescription}>
-                        Share your carbon credit portfolio with partner banks to unlock green financing opportunities and better loan rates.
-                      </Text>
-                    </View>
-                  </View>
-                  <ButtonCustom
-                    title="Connect Now"
-                    icon="arrow-right"
-                    onPress={handleConnectBank}
-                    style={styles.ctaButton}
-                  />
-                </LinearGradient>
               </Card>
             </Animated.View>
           )}

@@ -15,6 +15,8 @@ import LoadingOverlay from '../component/LoadingOverlay';
 import { LinearGradient } from 'react-native-linear-gradient';
 import { dashboardApi } from '../utils/Api';
 import Card from '../component/Card';
+import ButtonCustom from '../component/ButtonCustom';
+import api from '../utils/Api';
 interface DashboardScreenProps {
   navigation: any;
 }
@@ -31,7 +33,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [plots, setPlots] = useState<any[]>([]);
   const [scores, setScores] = useState<{ CP: number; MR: number; finalScore: number }>({ CP: 0, MR: 0, finalScore: 0 });
-
   const calcScoresFrom = (s: Summary) => {
     const riceScore = (s?.rice?.area || 0) * 0.85 * 1.1;
     const agroScore = (s?.agroforestry?.area || 0) * (s?.agroforestry?.treeDensity || 0) * 1.1 * 0.02;
@@ -54,9 +55,9 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     try {
       setLoading(true);
       const [landPlotsRes] = await Promise.all([
-        dashboardApi.getLandPlots(),
+        fetchLandPlots(),
       ]);
-      const plotsData = Array.isArray(landPlotsRes?.plots) ? landPlotsRes.plots : (Array.isArray(landPlotsRes) ? landPlotsRes : []);
+      const plotsData = Array.isArray(landPlotsRes) ? landPlotsRes : [];
       console.log('plotsData', plotsData);
       setPlots(plotsData);
     } catch (error: any) {
@@ -71,6 +72,28 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
 
   const handleCreateRecord = () => {
     navigation.navigate('CreateRecord', { recordId: '1' });
+  };
+    // Fetch land plots
+  const fetchLandPlots = async () => {
+    try {
+      const response = await api.get('/profile/land-plots');
+      console.log('Land plots response:', response.data);
+      const data = response.data.data;
+      
+      const plots = data.land_plots.map((plot: any) => ({
+        id: plot.id,
+        name: plot.name,
+        location: plot.location,
+        status: plot.status,
+        area: plot.area,
+        crop_type: plot.crop_type,
+        carbon_score: plot.carbon_score,
+        verification_date: plot.verification_date
+      }));
+      return plots;
+    } catch (error: any) {
+      console.error('Error fetching land plots:', error.response?.data || error);
+    }
   };
 
   const handlePlotSelect = (plotId: number) => {
@@ -95,10 +118,6 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
               <Text style={styles.recordsTitle}>AgriMRV Dashboard</Text>
               <Text style={styles.recordsSubtitle}>Proof of Practice, Proof of Carbon</Text>
             </View>
-            <TouchableOpacity style={styles.addButton} onPress={handleCreateRecord}>
-              <Icon name="plus" size={18} color={theme.colors.white} />
-              <Text style={styles.addButtonText}>Add Plot</Text>
-            </TouchableOpacity>
           </View>
 
           {/* MRV Process Overview */}
@@ -139,75 +158,65 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
+ {/* My Land Card */}
+ <Card style={[styles.contentCard, styles.elevation]}>
+                <View style={styles.cardHeaderWithAction}>
+                  <View style={styles.cardHeader}>
+                    <Icon name="map" size={24} color={theme.colors.primary} />
+                    <Text style={styles.cardTitle}>My Land</Text>
+                  </View>
+                  <ButtonCustom 
+                    title="Add Land" 
+                    icon="plus" 
+                    onPress={handleCreateRecord} 
+                    variant="primary" 
+                    style={styles.addButton} 
+                  />
+                </View>
 
-          {/* Land Plots */}
-          <View style={styles.plotsSection}>
-            <View style={styles.sectionHeaderContainer}>
-              <View>
-                <Text style={styles.sectionTitle}>Land Plots</Text>
-              </View>
-              <View style={styles.plotCountBadge}>
-                <Text style={styles.plotCountText}>{plots.length} plots</Text>
-              </View>
-            </View>
-
-            <View style={styles.plotsList}>
-              {plots.map((p: any) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={styles.plotCard}
-                  onPress={() => navigation.navigate('RecordDetail', { recordId: String(p.id) })}
-                >
-                  <View style={styles.plotCardContent}>
-                    <View style={styles.plotInfo}>
-                      <Text style={styles.plotTitle}>{p.name || `Plot #${p.id}`}</Text>
-                      <Text style={styles.plotDetails}>
-                        {(p.total_area ?? 0)} ha • {p.plot_type || 'N/A'}
-                      </Text>
-                      <View style={styles.plotMetrics}>
-                        {typeof p.rice_area === 'number' && (
-                          <View style={styles.metricItem}>
-                            <Icon name="ruler" size={14} color={theme.colors.textLight} />
-                            <Text style={styles.metricText}>{p.rice_area} ha/rice</Text>
+                <View style={styles.landList}>
+                  {plots.map((land: any) => (
+                    <View key={land.id} style={styles.landCard}>
+                      <View style={styles.landHeader}>
+                        <View style={styles.landInfo}>
+                          <Text style={styles.landName}>{land.name}</Text>
+                          <Text style={styles.landLocation}>{land.location}</Text>
+                        </View>
+                        <View style={styles.landActions}>
+                          <View style={[
+                            styles.statusBadge,
+                            { backgroundColor: land.status === 'verified' ? theme.colors.success + '20' : theme.colors.warning + '20' }
+                          ]}>
+                            <Text style={[
+                              styles.statusText,
+                              { color: land.status === 'verified' ? theme.colors.success : theme.colors.warning }
+                            ]}>
+                              {land.status === 'verified' ? 'Verified' : 'Pending'}
+                            </Text>
                           </View>
-                        )}
-                        {typeof p.agroforestry_area === 'number' && (
-                          <View style={styles.metricItem}>
-                            <Icon name="tree" size={14} color={theme.colors.textLight} />
-                            <Text style={styles.metricText}>{p.agroforestry_area} ha/trees</Text>
-                          </View>
-                        )}
-                        {!!p.water_management_method && (
-                          <View style={styles.metricItem}>
-                            <Icon name="water" size={14} color={theme.colors.textLight} />
-                            <Text style={styles.metricText}>AWD</Text>
-                          </View>
-                        )}
+                        </View>
+                      </View>
+                      
+                      <View style={styles.landStats}>
+                        <View style={styles.landStatItem}>
+                          <Text style={styles.landStatLabel}>Area</Text>
+                          <Text style={styles.landStatValue}>{land.area} ha</Text>
+                        </View>
+                        <View style={styles.landStatItem}>
+                          <Text style={styles.landStatLabel}>Crop</Text>
+                          <Text style={styles.landStatValue}>{land.crop_type}</Text>
+                        </View>
+                        <View style={styles.landStatItem}>
+                          <Text style={styles.landStatLabel}>Score</Text>
+                          <Text style={[styles.landStatValue, { color: theme.colors.success }]}>
+                            {land.carbon_score}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                    <View style={styles.plotStatus}>
-                      <Badge
-                        text={(p.status || 'pending').charAt(0).toUpperCase() + (p.status || 'pending').slice(1)}
-                        variant={(p.status === 'verified') ? 'success' : (p.status === 'pending') ? 'warning' : 'info'}
-                        size="small"
-                      />
-                      <Icon name="chevron-right" size={20} color={theme.colors.textLight} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <View style={plots.length === 0 ? styles.emptyList : { display: 'none' }}>
-            <Card style={styles.emptyCard}>
-                  <View style={styles.emptyContent}>
-                    <Icon name="map-marker-plus" size={48} color={theme.colors.textLight} />
-                    <Text style={styles.emptyTitle}>No Plots Found</Text>
-                    <Text style={styles.emptyText}>Please add a plot to get started</Text>
-                  </View>
-                </Card>
-
-            </View>
-          </View>
+                  ))}
+                </View>
+              </Card>
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -755,6 +764,107 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  // Content Card Styles
+  contentCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 20,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  // Land List Styles
+  landList: {
+    gap: theme.spacing.md,
+  },
+  landCard: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+  },
+  landHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  landInfo: {
+    flex: 1,
+  },
+  landName: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  landLocation: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.sm,
+  },
+  landActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  editButton: {
+    padding: 6,
+  },
+  landStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  landStatItem: {
+    flex: 1,
+  },
+  landStatLabel: {
+    color: theme.colors.textLight,
+    fontSize: theme.typography.fontSize.xs,
+    marginBottom: 2,
+  },
+  landStatValue: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text,
+  },
+  elevation: {
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  cardHeaderWithAction: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  cardTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: theme.typography.fontSize.lg,
+    color: theme.colors.text,
+  },
+
   processTitle: {
     fontSize: theme.typography.fontSize.sm,
     fontFamily: theme.typography.fontFamily.bold,

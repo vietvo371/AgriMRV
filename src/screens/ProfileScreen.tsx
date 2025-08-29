@@ -20,6 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import ModalCustom from '../component/ModalCustom';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import api from '../utils/Api';
 
 const { width } = Dimensions.get('window');
 
@@ -27,39 +28,129 @@ interface ProfileScreenProps {
   navigation: any;
 }
 
+interface Farmer {
+  id: number;
+  name: string;
+  avatar: string;
+  carbon_grade: string;
+  join_date: string;
+  phone: string;
+  email: string;
+  location: string;
+  date_of_birth: string;
+  mrv_verified: boolean;
+}
+
+interface FarmStats {
+  total_area: number;
+  carbon_credits_earned: number;
+  verification_rate: number;
+  monthly_income: number;
+  carbon_reduction: number;
+  mrv_reliability: number;
+}
+
+interface LandPlot {
+  id: number;
+  name: string;
+  location: string;
+  status: 'verified' | 'pending' | 'rejected';
+  area: number;
+  crop_type: string;
+  carbon_score: string;
+  verification_date: string | null;
+}
+
+interface Yield {
+  id: number;
+  season: string;
+  crop: string;
+  yield: number;
+  price: number;
+  harvest_date: string;
+  is_highlight: boolean;
+}
+
+interface Training {
+  name: string;
+  completion_date: string;
+  score: number;
+}
+
+interface Memberships {
+  cooperative: string;
+  cooperative_status: string;
+  training_completed: Training[];
+  overall_training_score: number;
+}
+
+interface Loan {
+  id: number;
+  date: string;
+  amount: number;
+  status: 'repaid' | 'active' | 'overdue';
+  purpose: string;
+  repayment_date: string | null;
+  interest_rate: number;
+}
+
+interface LoanHistory {
+  loans: Loan[];
+  total_borrowed: number;
+  total_repaid: number;
+  credit_score: string;
+}
+
+interface ProfileData {
+  farmer: Farmer;
+  farmStats: FarmStats;
+  landPlots: LandPlot[];
+  yields: Yield[];
+  memberships: Memberships;
+  loanHistory: LoanHistory;
+}
+
 const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [isEditing] = useState(false);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'personal' | 'farm' | 'achievements'>('personal');
   
-  const [profileData, setProfileData] = useState<any>({
+  const [profileData, setProfileData] = useState<ProfileData>({
     farmer: {
-      name: 'Nguyễn Văn An',
-      avatar: 'https://via.placeholder.com/150',
-      carbonGrade: 'B',
-      joinDate: '2023-06-15',
-      phone: '+84 901 234 567',
-      email: 'nguyenvanan@email.com',
-      location: 'An Giang Province',
+      id: 0,
+      name: '',
+      avatar: '',
+      carbon_grade: '',
+      join_date: '',
+      phone: '',
+      email: '',
+      location: '',
+      date_of_birth: '',
+      mrv_verified: false
     },
     farmStats: {
-      totalArea: 2.5,
-      carbonCreditsEarned: 68,
-      verificationRate: 95,
-      monthlyIncome: 450,
+      total_area: 0,
+      carbon_credits_earned: 0,
+      verification_rate: 0,
+      monthly_income: 0,
+      carbon_reduction: 0,
+      mrv_reliability: 0
     },
-    yieldHistory: [
-      { season: 'Winter 2023', crop: 'Rice', yield: 6.2, price: 8500 },
-      { season: 'Summer 2023', crop: 'Rice', yield: 5.8, price: 8200 },
-    ],
+    landPlots: [],
+    yields: [],
     memberships: {
-      cooperative: 'An Giang Farmers Cooperative',
-      trainingCompleted: ['Basic AWD', 'Carbon Farming', 'Digital Literacy'],
-      loanHistory: [
-        { date: '2023-08-01', amount: 15000000, status: 'repaid', purpose: 'Seeds & Fertilizer' },
-      ],
+      cooperative: '',
+      cooperative_status: '',
+      training_completed: [],
+      overall_training_score: 0
     },
+    loanHistory: {
+      loans: [],
+      total_borrowed: 0,
+      total_repaid: 0,
+      credit_score: ''
+    }
   });
   
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -72,6 +163,185 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       code += alphabet[Math.floor(Math.random() * alphabet.length)];
     }
     return `AGC-${code}`;
+  }, []);
+
+  // Fetch user profile data
+  const fetchUserProfile = async () => {
+    try {
+      const response = await api.get('/profile/user');
+      console.log('User profile response:', response.data);
+      const data = response.data.data;
+      
+      setProfileData(prev => ({
+        ...prev,
+        farmer: {
+          id: data.farmer.id || 0,
+          name: data.farmer.name || '',
+          avatar: data.farmer.avatar || '',
+          carbon_grade: data.farmer.carbon_grade || '',
+          join_date: data.farmer.join_date || '',
+          phone: data.farmer.phone || '',
+          email: data.farmer.email || '',
+          location: data.farmer.location || '',
+          date_of_birth: data.farmer.date_of_birth || '',
+          mrv_verified: data.farmer.mrv_verified || false
+        }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching user profile:', error.response?.data || error);
+    }
+  };
+
+  // Fetch farm stats
+  const fetchFarmStats = async () => {
+    try {
+      const response = await api.get('/profile/farm-stats');
+      console.log('Farm stats response:', response.data);
+      const data = response.data.data;
+      
+      setProfileData(prev => ({
+        ...prev,
+        farmStats: {
+          total_area: data.farm_stats.total_area || 0,
+          carbon_credits_earned: data.farm_stats.carbon_credits_earned || 0,
+          verification_rate: data.farm_stats.verification_rate || 0,
+          monthly_income: data.farm_stats.monthly_income || 0,
+          carbon_reduction: data.farm_stats.carbon_reduction || 0,
+          mrv_reliability: data.farm_stats.mrv_reliability || 0
+        }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching farm stats:', error.response?.data || error);
+    }
+  };
+
+  // Fetch land plots
+  const fetchLandPlots = async () => {
+    try {
+      const response = await api.get('/profile/land-plots');
+      console.log('Land plots response:', response.data);
+      const data = response.data.data;
+      
+      const plots = data.land_plots.map((plot: any) => ({
+        id: plot.id,
+        name: plot.name,
+        location: plot.location,
+        status: plot.status,
+        area: plot.area,
+        crop_type: plot.crop_type,
+        carbon_score: plot.carbon_score,
+        verification_date: plot.verification_date
+      }));
+      
+      setProfileData(prev => ({
+        ...prev,
+        landPlots: plots
+      }));
+    } catch (error: any) {
+      console.error('Error fetching land plots:', error.response?.data || error);
+    }
+  };
+
+  // Fetch yield history
+  const fetchYieldHistory = async () => {
+    try {
+      const response = await api.get('/profile/yield-history?limit=5');
+      console.log('Yield history response:', response.data);
+      const data = response.data.data;
+      
+      const yields = data.yields.map((yieldItem: any) => ({
+        id: yieldItem.id,
+        season: yieldItem.season,
+        crop: yieldItem.crop,
+        yield: yieldItem.yield,
+        price: yieldItem.price,
+        harvest_date: yieldItem.harvest_date,
+        is_highlight: yieldItem.is_highlight
+      }));
+      
+      setProfileData(prev => ({
+        ...prev,
+        yields
+      }));
+    } catch (error: any) {
+      console.error('Error fetching yield history:', error.response?.data || error);
+    }
+  };
+
+  // Fetch memberships
+  const fetchMemberships = async () => {
+    try {
+      const response = await api.get('/profile/memberships');
+      console.log('Memberships response:', response.data);
+      const data = response.data.data;
+      
+      setProfileData(prev => ({
+        ...prev,
+        memberships: {
+          cooperative: data.memberships.cooperative || '',
+          cooperative_status: data.memberships.cooperative_status || '',
+          training_completed: data.memberships.training_completed || [],
+          overall_training_score: data.memberships.overall_training_score || 0
+        }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching memberships:', error.response?.data || error);
+    }
+  };
+
+  // Fetch loan history
+  const fetchLoanHistory = async () => {
+    try {
+      const response = await api.get('/profile/loan-history');
+      console.log('Loan history response:', response.data);
+      const data = response.data.data;
+      
+      const loans = data.loans.map((loan: any) => ({
+        id: loan.id,
+        date: loan.date,
+        amount: loan.amount,
+        status: loan.status,
+        purpose: loan.purpose,
+        repayment_date: loan.repayment_date,
+        interest_rate: loan.interest_rate
+      }));
+      
+      setProfileData(prev => ({
+        ...prev,
+        loanHistory: {
+          loans,
+          total_borrowed: data.total_borrowed || 0,
+          total_repaid: data.total_repaid || 0,
+          credit_score: data.credit_score || ''
+        }
+      }));
+    } catch (error: any) {
+      console.error('Error fetching loan history:', error.response?.data || error);
+    }
+  };
+
+  // Fetch all data on component mount
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchUserProfile(),
+          fetchFarmStats(),
+          fetchLandPlots(),
+          fetchYieldHistory(),
+          fetchMemberships(),
+          fetchLoanHistory(),
+        ]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        Alert.alert('Error', 'Failed to load profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
   }, []);
 
   const copyShareCode = () => {
@@ -113,7 +383,13 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           {/* Enhanced Profile Header */}
           <Animated.View entering={FadeInDown.duration(500).springify()}>
             <Card style={[styles.profileHeader, styles.elevation]}>
-              <View style={styles.headerRow}>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>Loading profile...</Text>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.headerRow}>
                 <View style={styles.profileInfo}>
                   <ImagePicker
                     imageUri={profileData.farmer.avatar}
@@ -126,20 +402,22 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     containerStyle={styles.avatarContainer}
                   />
                   <View style={styles.userInfo}>
-                    <Text style={styles.userName}>{profileData.farmer.name}</Text>
+                    <Text style={styles.userName}>{profileData.farmer.name || 'Loading...'}</Text>
                     <View style={styles.userBadgeRow}>
                       <View style={styles.verifiedBadge}>
                         <Icon name="shield-check" size={14} color={theme.colors.success} />
-                        <Text style={styles.verifiedText}>MRV Verified</Text>
+                        <Text style={styles.verifiedText}>
+                          {profileData.farmer.mrv_verified ? 'MRV Verified' : 'Not Verified'}
+                        </Text>
                       </View>
                       <View style={styles.gradeBadge}>
                         <Icon name="star" size={14} color={theme.colors.primary} />
-                        <Text style={styles.gradeText}>Grade {profileData.farmer.carbonGrade}</Text>
+                        <Text style={styles.gradeText}>Grade {profileData.farmer.carbon_grade || 'N/A'}</Text>
                       </View>
                     </View>
                     <View style={styles.locationRow}>
                       <Icon name="map-marker" size={16} color={theme.colors.textLight} />
-                      <Text style={styles.locationText}>{profileData.farmer.location}</Text>
+                      <Text style={styles.locationText}>{profileData.farmer.location || 'Location not set'}</Text>
                     </View>
                   </View>
                 </View>
@@ -160,7 +438,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                   >
                     <Icon name="leaf" size={20} color={theme.colors.success} />
                   </LinearGradient>
-                  <Text style={styles.statValue}>1.9</Text>
+                  <Text style={styles.statValue}>{profileData.farmStats.carbon_reduction}</Text>
                   <Text style={styles.statLabel}>tCO₂e reduced</Text>
                 </View>
                 <View style={styles.statItem}>
@@ -170,7 +448,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                   >
                     <Icon name="chart-line" size={20} color={theme.colors.warning} />
                   </LinearGradient>
-                  <Text style={styles.statValue}>75%</Text>
+                  <Text style={styles.statValue}>{profileData.farmStats.mrv_reliability}%</Text>
                   <Text style={styles.statLabel}>MRV reliability</Text>
                 </View>
                 <View style={styles.statItem}>
@@ -180,10 +458,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                   >
                     <Icon name="map" size={20} color={theme.colors.primary} />
                   </LinearGradient>
-                  <Text style={styles.statValue}>{profileData.farmStats.totalArea}</Text>
+                  <Text style={styles.statValue}>{profileData.farmStats.total_area}</Text>
                   <Text style={styles.statLabel}>Total hectares</Text>
                 </View>
               </View>
+                </>
+              )}
             </Card>
           </Animated.View>
 
@@ -231,7 +511,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Phone</Text>
-                      <Text style={styles.infoValue}>{profileData.farmer.phone}</Text>
+                      <Text style={styles.infoValue}>{profileData.farmer.phone || 'Not provided'}</Text>
                     </View>
                   </View>
 
@@ -241,7 +521,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Email</Text>
-                      <Text style={styles.infoValue}>{profileData.farmer.email}</Text>
+                      <Text style={styles.infoValue}>{profileData.farmer.email || 'Not provided'}</Text>
                     </View>
                   </View>
 
@@ -251,7 +531,16 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Date of birth</Text>
-                      <Text style={styles.infoValue}>Jan 15, 1985</Text>
+                      <Text style={styles.infoValue}>
+                        {profileData.farmer.date_of_birth ? 
+                          new Date(profileData.farmer.date_of_birth).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          }) : 
+                          'Not provided'
+                        }
+                      </Text>
                     </View>
                   </View>
 
@@ -261,7 +550,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Location</Text>
-                      <Text style={styles.infoValue}>{profileData.farmer.location}</Text>
+                      <Text style={styles.infoValue}>{profileData.farmer.location || 'Not provided'}</Text>
                     </View>
                   </View>
                 </View>
@@ -288,7 +577,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                   </View>
                   <View style={styles.farmStatItem}>
                     <Text style={styles.farmStatLabel}>Farm area</Text>
-                    <Text style={styles.farmStatValue}>{profileData.farmStats.totalArea} ha</Text>
+                    <Text style={styles.farmStatValue}>{profileData.farmStats.total_area} ha</Text>
                   </View>
                   <View style={styles.farmStatItem}>
                     <Text style={styles.farmStatLabel}>Last sowing</Text>
@@ -310,19 +599,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                   </View>
                   
-                  {[
-                    { season: 'Spring 2024', yield: '5.8 tons', isHighlight: true },
-                    { season: 'Winter 2023', yield: '4.9 tons', isHighlight: false },
-                    { season: 'Spring 2023', yield: '5.2 tons', isHighlight: false },
-                  ].map((item, index) => (
+                  {profileData.yields.map((item, index) => (
                     <View key={index} style={styles.yieldItem}>
                       <Text style={styles.yieldSeason}>{item.season}</Text>
-                      <Text style={[
-                        styles.yieldValue, 
-                        item.isHighlight && { color: theme.colors.success }
-                      ]}>
-                        {item.yield}
-                      </Text>
+                                              <Text style={[
+                          styles.yieldValue, 
+                          item.is_highlight && { color: theme.colors.success }
+                        ]}>
+                          {item.yield} tons
+                        </Text>
                     </View>
                   ))}
                 </View>
@@ -345,10 +630,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 </View>
 
                 <View style={styles.landList}>
-                  {[
-                    { id: '1', name: 'Plot 01', location: 'An Giang', status: 'verified', area: 1.2, cropType: 'Rice', carbonScore: 'B+' },
-                    { id: '2', name: 'Plot 02', location: 'Dong Thap', status: 'pending', area: 0.8, cropType: 'Rice', carbonScore: 'B' },
-                  ].map((land) => (
+                  {profileData.landPlots.map((land) => (
                     <View key={land.id} style={styles.landCard}>
                       <View style={styles.landHeader}>
                         <View style={styles.landInfo}>
@@ -380,12 +662,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                         </View>
                         <View style={styles.landStatItem}>
                           <Text style={styles.landStatLabel}>Crop</Text>
-                          <Text style={styles.landStatValue}>{land.cropType}</Text>
+                          <Text style={styles.landStatValue}>{land.crop_type}</Text>
                         </View>
                         <View style={styles.landStatItem}>
                           <Text style={styles.landStatLabel}>Score</Text>
                           <Text style={[styles.landStatValue, { color: theme.colors.success }]}>
-                            {land.carbonScore}
+                            {land.carbon_score}
                           </Text>
                         </View>
                       </View>
@@ -417,7 +699,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.achievementContent}>
                       <Text style={styles.achievementTitle}>Cooperative Member</Text>
-                      <Text style={styles.achievementSubtitle}>{profileData.memberships.cooperative}</Text>
+                      <Text style={styles.achievementSubtitle}>{profileData.memberships.cooperative || 'No cooperative'}</Text>
                     </View>
                     <View style={styles.achievementBadge}>
                       <Text style={styles.achievementBadgeText}>Active</Text>
@@ -435,11 +717,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.achievementContent}>
                       <Text style={styles.achievementTitle}>Training Completed</Text>
-                      <Text style={styles.achievementSubtitle}>Agricultural Best Practices</Text>
-                    </View>
-                    <View style={[styles.achievementBadge, { backgroundColor: theme.colors.success + '20' }]}>
-                      <Icon name="trophy" size={12} color={theme.colors.success} />
-                      <Text style={[styles.achievementBadgeText, { color: theme.colors.success }]}>85%</Text>
+                                              <Text style={styles.achievementSubtitle}>
+                          {profileData.memberships.training_completed.length} trainings completed
+                        </Text>
+                      </View>
+                      <View style={[styles.achievementBadge, { backgroundColor: theme.colors.success + '20' }]}>
+                        <Icon name="trophy" size={12} color={theme.colors.success} />
+                        <Text style={[styles.achievementBadgeText, { color: theme.colors.success }]}>
+                          {profileData.memberships.overall_training_score}%
+                        </Text>
                     </View>
                   </View>
 
@@ -454,10 +740,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                     </View>
                     <View style={styles.achievementContent}>
                       <Text style={styles.achievementTitle}>Loan History</Text>
-                      <Text style={styles.achievementSubtitle}>2 loans, 100% repaid on time</Text>
-                    </View>
-                    <View style={[styles.achievementBadge, { backgroundColor: theme.colors.success + '20' }]}>
-                      <Text style={[styles.achievementBadgeText, { color: theme.colors.success }]}>Excellent</Text>
+                                              <Text style={styles.achievementSubtitle}>
+                          {profileData.loanHistory.loans.length} loans, {profileData.loanHistory.credit_score} credit score
+                        </Text>
+                      </View>
+                      <View style={[styles.achievementBadge, { backgroundColor: theme.colors.success + '20' }]}>
+                        <Text style={[styles.achievementBadgeText, { color: theme.colors.success }]}>
+                          {profileData.loanHistory.credit_score}
+                        </Text>
                     </View>
                   </View>
                 </View>
@@ -471,7 +761,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 </View>
 
                 <View style={styles.loanList}>
-                  {profileData.memberships.loanHistory.map((loan: any, index: number) => (
+                  {profileData.loanHistory.loans.map((loan: any, index: number) => (
                     <View key={index} style={styles.loanItem}>
                       <View style={styles.loanIcon}>
                         <Icon name="check-circle" size={20} color={theme.colors.success} />
@@ -1063,6 +1353,16 @@ const styles = StyleSheet.create({
   logoutButton: {
     backgroundColor: theme.colors.error,
     borderColor: theme.colors.error,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  loadingText: {
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.textLight,
   },
 });
 
