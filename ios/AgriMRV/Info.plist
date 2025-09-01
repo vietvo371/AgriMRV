@@ -8,10 +8,10 @@
 	<string>AgriMRV</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -35,14 +35,14 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>AgriMRV needs access to your camera to scan QR codes and take product photos.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>AgriMRV needs access to your photo library to upload product images and documentation photos.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>AgriMRV needs access to location to mark your farm location.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>AgriMRV needs access to location to mark your farm location.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>AgriMRV needs access to location to mark your farm location.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AgriMRV needs access to your photo library to upload product images and documentation photos.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
