@@ -21,6 +21,7 @@ import ButtonCustom from '../component/ButtonCustom';
 import LoadingOverlay from '../component/LoadingOverlay';
 import { dashboardApi } from '../utils/Api';
 import { deriveRecordDetail } from '../utils/mockData';
+import { reverseGeocode, formatAddress, getShortAddress, GeocodingResult } from '../utils/geocoding';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import LinearGradient from 'react-native-linear-gradient';
@@ -88,6 +89,8 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
   const { recordId } = route.params;
   const [plot, setPlot] = useState<PlotDetailsResponse['data'] | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [geocodingResult, setGeocodingResult] = useState<GeocodingResult | null>(null);
+  const [geocodingLoading, setGeocodingLoading] = useState(false);
   const convertDateToISOString = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
@@ -181,8 +184,46 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
     return () => { mounted = false; };
   }, [recordId]);
 
+  // Reverse geocoding effect
+  useEffect(() => {
+    if (!plot?.mrvData?.plotBoundaries?.coordinates?.[0]) return;
+    
+    const coordinates = plot.mrvData.plotBoundaries.coordinates[0];
+    if (coordinates.lat === 0 && coordinates.lng === 0) return; // Skip if coordinates are invalid
+    
+    let mounted = true;
+    (async () => {
+      try {
+        setGeocodingLoading(true);
+        const result = await reverseGeocode(coordinates.lat, coordinates.lng);
+        if (mounted) {
+          setGeocodingResult(result);
+        }
+      } catch (error) {
+        console.error('Geocoding failed:', error);
+        if (mounted) {
+          // Set fallback result
+          setGeocodingResult({
+            address: '',
+            city: '',
+            state: '',
+            country: '',
+            formattedAddress: `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}`
+          });
+        }
+      } finally {
+        if (mounted) {
+          setGeocodingLoading(false);
+        }
+      }
+    })();
+    
+    return () => { mounted = false; };
+  }, [plot?.mrvData?.plotBoundaries?.coordinates]);
+
   console.log(recordId);
   console.log(plot);
+  console.log(geocodingResult);
 
   const renderInfoItem = (icon: string, label: string, value: string, color: string) => (
     <View style={styles.infoItem}>
@@ -232,14 +273,16 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
                 <Text style={styles.productName}>{plot.plot_name}</Text>
                 <View style={styles.categoryContainer}>
                   <Icon name="map-marker" size={16} color={theme.colors.textLight} />
-                  <Text style={styles.category}>{plot.location}</Text>
+                  <Text style={styles.category}>
+                    {geocodingResult ? getShortAddress(geocodingResult) : plot.location}
+                  </Text>
                 </View>
               </View>
               <Badge text={plot.status?.toUpperCase() || 'PENDING'} variant={plot.status === 'verified' ? 'success' : 'warning'} />
             </View>
           </View>
 
-          {/* MRV Verification Banner */}
+          {/* MRV Verification Banner - Only show for verified status */}
           {plot.status === 'verified' && (
             <View style={[styles.verificationBanner, styles.elevation]}>
               <View style={styles.verificationRow}>
@@ -251,78 +294,130 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
               </Text>
             </View>
           )}
-  {/* MRV Calculation Results */}
-  <View style={[styles.section, styles.elevation]}>
-            <View style={styles.sectionHeader}>
-              <Icon name="file-document" size={24} color={theme.colors.primary} />
-              <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
-            </View>
 
-            {/* Total Carbon Impact & Carbon Badge */}
-            <View style={styles.carbonOverview}>
-              <View style={styles.carbonImpact}>
-                <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
-                <Text style={styles.carbonImpactValue}>{plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
-                <Text style={styles.carbonImpactUnit}>per season</Text>
+          {/* MRV Calculation Results - Only show for verified status */}
+          {plot.status === 'verified' && (
+            <View style={[styles.section, styles.elevation]}>
+              <View style={styles.sectionHeader}>
+                <Icon name="file-document" size={24} color={theme.colors.primary} />
+                <Text style={styles.sectionTitle}>MRV Calculation Results</Text>
               </View>
-              <View style={styles.carbonBadge}>
-                <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeText}>Grade A</Text>
-                </View>
-              </View>
-            </View>
 
-            {/* Carbon Performance (CP) */}
-            <View style={styles.performanceSection}>
-              <View style={styles.performanceHeader}>
-                <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
-                <Text style={styles.performanceScore}>{plot.mrvData.mrvScores.carbonPerformance}/100</Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
-              </View>
-              <View style={styles.performanceBreakdown}>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Rice AWD: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+              {/* Total Carbon Impact & Carbon Badge */}
+              <View style={styles.carbonOverview}>
+                <View style={styles.carbonImpact}>
+                  <Text style={styles.carbonImpactLabel}>Total Carbon Impact</Text>
+                  <Text style={styles.carbonImpactValue}>{plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                  <Text style={styles.carbonImpactUnit}>per season</Text>
                 </View>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Agroforestry: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                <View style={styles.carbonBadge}>
+                  <Text style={styles.carbonBadgeLabel}>Carbon Badge</Text>
+                  <View style={styles.badgeContainer}>
+                    <Text style={styles.badgeText}>Grade {plot.mrvData.mrvScores.grade}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* MRV Reliability (MR) */}
-            <View style={styles.reliabilitySection}>
-              <View style={styles.reliabilityHeader}>
-                <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
-                <Text style={styles.reliabilityScore}>{plot.mrvData.mrvScores.mrvReliability}/100</Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
-              </View>
-              <View style={styles.reliabilityBreakdown}>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Rice evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (photos + GPS + diary)</Text>
+              {/* Carbon Performance (CP) */}
+              <View style={styles.performanceSection}>
+                <View style={styles.performanceHeader}>
+                  <Text style={styles.performanceLabel}>Carbon Performance (CP)</Text>
+                  <Text style={styles.performanceScore}>{plot.mrvData.mrvScores.carbonPerformance}/100</Text>
                 </View>
-                <View style={styles.breakdownItem}>
-                  <Text style={styles.breakdownText}>Agroforestry evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (tree coverage)</Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '78.8%', backgroundColor: theme.colors.primary }]} />
+                </View>
+                <View style={styles.performanceBreakdown}>
+                  <View style={styles.breakdownItem}>
+                    <Text style={styles.breakdownText}>Rice AWD: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                  </View>
+                  <View style={styles.breakdownItem}>
+                    <Text style={styles.breakdownText}>Agroforestry: {plot.mrvData.mrvScores.carbonPerformance}/100 → {plot.mrvData.mrvScores.carbonPerformance} tCO₂e</Text>
+                  </View>
                 </View>
               </View>
-            </View>
 
-            {/* Blockchain Anchor & View MRV Report */}
-            <View style={styles.blockchainSection}>
-              <View style={styles.blockchainHeader}>
-                <Text style={styles.blockchainHeaderLabel}># Blockchain Anchor</Text>
+              {/* MRV Reliability (MR) */}
+              <View style={styles.reliabilitySection}>
+                <View style={styles.reliabilityHeader}>
+                  <Text style={styles.reliabilityLabel}>MRV Reliability (MR)</Text>
+                  <Text style={styles.reliabilityScore}>{plot.mrvData.mrvScores.mrvReliability}/100</Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '75.0%', backgroundColor: theme.colors.warning }]} />
+                </View>
+                <View style={styles.reliabilityBreakdown}>
+                  <View style={styles.breakdownItem}>
+                    <Text style={styles.breakdownText}>Rice evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (photos + GPS + diary)</Text>
+                  </View>
+                  <View style={styles.breakdownItem}>
+                    <Text style={styles.breakdownText}>Agroforestry evidence: {plot.mrvData.mrvScores.mrvReliability}/100 (tree coverage)</Text>
+                  </View>
+                </View>
               </View>
-              <Text style={styles.blockchainHash}>{plot.mrvData.blockchainAnchor.hash || 'N/A'}</Text>
-              <TouchableOpacity style={styles.mrvReportButton} onPress={() => Linking.openURL(plot.mrvData.blockchainAnchor.reportUrl)}>
-                <Icon name="earth" size={16} color={theme.colors.white} />
-                <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
-              </TouchableOpacity>
+
+              {/* Blockchain Anchor & View MRV Report */}
+              <View style={styles.blockchainSection}>
+                <View style={styles.blockchainHeader}>
+                  <Text style={styles.blockchainHeaderLabel}># Blockchain Anchor</Text>
+                </View>
+                <Text style={styles.blockchainHash}>{plot.mrvData.blockchainAnchor.hash || 'N/A'}</Text>
+                <TouchableOpacity style={styles.mrvReportButton} onPress={() => Linking.openURL(plot.mrvData.blockchainAnchor.reportUrl)}>
+                  <Icon name="earth" size={16} color={theme.colors.white} />
+                  <Text style={styles.mrvReportButtonText}>View MRV Report</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
+
+          {/* Status-specific content for non-verified plots */}
+          {plot.status !== 'verified' && (
+            <View style={[styles.section, styles.elevation]}>
+              <View style={styles.sectionHeader}>
+                <Icon name="clock-outline" size={24} color={theme.colors.warning} />
+                <Text style={styles.sectionTitle}>Verification Status</Text>
+              </View>
+              
+              <View style={styles.statusContent}>
+                <View style={styles.statusIconContainer}>
+                  <Icon 
+                    name={plot.status === 'pending' ? 'clock-outline' : 'cog'} 
+                    size={48} 
+                    color={theme.colors.warning} 
+                  />
+                </View>
+                <Text style={styles.statusTitle}>
+                  {plot.status === 'pending' ? 'Pending Verification' : 'Processing'}
+                </Text>
+                <Text style={styles.statusDescription}>
+                  {plot.status === 'pending' 
+                    ? 'Your plot is waiting for MRV verification. Once verified, you will see detailed carbon impact calculations and blockchain anchoring.'
+                    : 'Your plot is currently being processed for MRV verification. Please check back later for updates.'
+                  }
+                </Text>
+                
+                {plot.status === 'pending' && (
+                  <View style={styles.nextStepsContainer}>
+                    <Text style={styles.nextStepsTitle}>Next Steps:</Text>
+                    <View style={styles.nextStepsList}>
+                      <View style={styles.nextStepItem}>
+                        <Icon name="check-circle" size={16} color={theme.colors.success} />
+                        <Text style={styles.nextStepText}>Submit evidence photos</Text>
+                      </View>
+                      <View style={styles.nextStepItem}>
+                        <Icon name="check-circle" size={16} color={theme.colors.success} />
+                        <Text style={styles.nextStepText}>Complete practice documentation</Text>
+                      </View>
+                      <View style={styles.nextStepItem}>
+                        <Icon name="clock-outline" size={16} color={theme.colors.warning} />
+                        <Text style={styles.nextStepText}>Wait for AI verification</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
           {/* Plot Information */}
           <View style={[styles.section, styles.elevation]}>
             <View style={styles.sectionHeader}>
@@ -438,8 +533,50 @@ const RecordDetailScreen: React.FC<RecordDetailScreenProps> = ({
             <View style={styles.mapContainer}>
               <View style={styles.addressContainer}>
                 <Icon name="home-variant" size={20} color={theme.colors.primary} />
-                <Text style={styles.address}>{plot.location}</Text>
+                {geocodingLoading ? (
+                  <Text style={styles.address}>Loading address...</Text>
+                ) : (
+                  <Text style={styles.address}>
+                    {geocodingResult ? formatAddress(geocodingResult) : plot.location}
+                  </Text>
+                )}
               </View>
+              
+              {/* Detailed Address Information */}
+              {geocodingResult && !geocodingLoading && (
+                <View style={styles.addressDetailsContainer}>
+                  <View style={styles.addressDetailsGrid}>
+                    {geocodingResult.address && (
+                      <View style={styles.addressDetailItem}>
+                        <Icon name="road" size={16} color={theme.colors.primary} />
+                        <Text style={styles.addressDetailLabel}>Street</Text>
+                        <Text style={styles.addressDetailValue}>{geocodingResult.address}</Text>
+                      </View>
+                    )}
+                    {geocodingResult.city && (
+                      <View style={styles.addressDetailItem}>
+                        <Icon name="city" size={16} color={theme.colors.secondary} />
+                        <Text style={styles.addressDetailLabel}>City</Text>
+                        <Text style={styles.addressDetailValue}>{geocodingResult.city}</Text>
+                      </View>
+                    )}
+                    {geocodingResult.state && (
+                      <View style={styles.addressDetailItem}>
+                        <Icon name="map-marker-radius" size={16} color={theme.colors.warning} />
+                        <Text style={styles.addressDetailLabel}>State/Province</Text>
+                        <Text style={styles.addressDetailValue}>{geocodingResult.state}</Text>
+                      </View>
+                    )}
+                    {geocodingResult.country && (
+                      <View style={styles.addressDetailItem}>
+                        <Icon name="flag" size={16} color={theme.colors.success} />
+                        <Text style={styles.addressDetailLabel}>Country</Text>
+                        <Text style={styles.addressDetailValue}>{geocodingResult.country}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
               <MapView
                 style={styles.map}
                 initialRegion={{
@@ -698,6 +835,43 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginLeft: 12,
     flex: 1,
+  },
+  addressDetailsContainer: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  addressDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  addressDetailItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  addressDetailLabel: {
+    fontSize: 12,
+    color: theme.colors.textLight,
+    marginTop: 6,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  addressDetailValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.text,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   map: {
     width: '100%',
@@ -1140,6 +1314,61 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 40,
     right: 24,
+  },
+  // Status-specific styles
+  statusContent: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  statusIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.warning + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statusTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  statusDescription: {
+    fontSize: 16,
+    color: theme.colors.textLight,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  nextStepsContainer: {
+    width: '100%',
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  nextStepsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 12,
+  },
+  nextStepsList: {
+    gap: 12,
+  },
+  nextStepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  nextStepText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    flex: 1,
   },
 });
 

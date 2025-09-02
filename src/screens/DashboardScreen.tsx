@@ -67,27 +67,27 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     }
   };
   useEffect(() => {
-     getDashboardData()
+    getDashboardData()
   }, []);
 
   const handleCreateRecord = () => {
     navigation.navigate('CreateRecord', { recordId: '1' });
   };
-    // Fetch land plots
+  // Fetch land plots
   const fetchLandPlots = async () => {
     try {
       const response = await api.get('/profile/land-plots');
       console.log('Land plots response:', response.data);
       const data = response.data.data;
-      
+
       const plots = data.land_plots.map((plot: any) => ({
         id: plot.id,
         name: plot.name,
         location: plot.location,
         status: plot.status,
-        area: plot.area,
-        crop_type: plot.crop_type,
-        carbon_score: plot.carbon_score,
+        area: plot.total_area,
+        crop_type: plot.plot_type,
+        carbon_score: plot.final_score,
         verification_date: plot.verification_date
       }));
       return plots;
@@ -96,8 +96,8 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
     }
   };
 
-  const handlePlotSelect = (plotId: number) => {
-    setSelectedPlot(plotId);
+  const handleDetail = (plotId: number) => {
+    navigation.navigate('RecordDetail', { recordId: plotId });
   };
 
   if (loading) {
@@ -158,65 +158,65 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) => {
             </View>
           </View>
 
- {/* My Land Card */}
- <Card style={[styles.contentCard, styles.elevation]}>
-                <View style={styles.cardHeaderWithAction}>
-                  <View style={styles.cardHeader}>
-                    <Icon name="map" size={24} color={theme.colors.primary} />
-                    <Text style={styles.cardTitle}>My Land</Text>
-                  </View>
-                  <ButtonCustom 
-                    title="Add Land" 
-                    icon="plus" 
-                    onPress={handleCreateRecord} 
-                    variant="primary" 
-                    style={styles.addButton} 
-                  />
-                </View>
+          {/* My Land Card */}
+          <Card style={[styles.contentCard, styles.elevation]}>
+            <View style={styles.cardHeaderWithAction}>
+              <View style={styles.cardHeader}>
+                <Icon name="map" size={24} color={theme.colors.primary} />
+                <Text style={styles.cardTitle}>My Land</Text>
+              </View>
+              <ButtonCustom
+                title="Add Land"
+                icon="plus"
+                onPress={handleCreateRecord}
+                variant="primary"
+                style={styles.addButton}
+              />
+            </View>
 
-                <View style={styles.landList}>
-                  {plots.map((land: any) => (
-                    <View key={land.id} style={styles.landCard}>
-                      <View style={styles.landHeader}>
-                        <View style={styles.landInfo}>
-                          <Text style={styles.landName}>{land.name}</Text>
-                          <Text style={styles.landLocation}>{land.location}</Text>
-                        </View>
-                        <View style={styles.landActions}>
-                          <View style={[
-                            styles.statusBadge,
-                            { backgroundColor: land.status === 'verified' ? theme.colors.success + '20' : theme.colors.warning + '20' }
-                          ]}>
-                            <Text style={[
-                              styles.statusText,
-                              { color: land.status === 'verified' ? theme.colors.success : theme.colors.warning }
-                            ]}>
-                              {land.status === 'verified' ? 'Verified' : 'Pending'}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-                      
-                      <View style={styles.landStats}>
-                        <View style={styles.landStatItem}>
-                          <Text style={styles.landStatLabel}>Area</Text>
-                          <Text style={styles.landStatValue}>{land.area} ha</Text>
-                        </View>
-                        <View style={styles.landStatItem}>
-                          <Text style={styles.landStatLabel}>Crop</Text>
-                          <Text style={styles.landStatValue}>{land.crop_type}</Text>
-                        </View>
-                        <View style={styles.landStatItem}>
-                          <Text style={styles.landStatLabel}>Score</Text>
-                          <Text style={[styles.landStatValue, { color: theme.colors.success }]}>
-                            {land.carbon_score}
-                          </Text>
-                        </View>
+            <View style={styles.landList}>
+              {plots.map((land: any) => (
+                <TouchableOpacity key={land.id} style={styles.landCard} onPress={() => handleDetail(land.id)}>
+                  <View style={styles.landHeader}>
+                    <View style={styles.landInfo}>
+                      <Text style={styles.landName}>{land.name}</Text>
+                      <Text style={styles.landLocation}>{land.location}</Text>
+                    </View>
+                    <View style={styles.landActions}>
+                      <View style={[
+                        styles.statusBadge,
+                        { backgroundColor: land.status === 'verified' ? theme.colors.success + '20' : theme.colors.warning + '20' }
+                      ]}>
+                        <Text style={[
+                          styles.statusText,
+                          { color: land.status === 'verified' ? theme.colors.success : theme.colors.warning }
+                        ]}>
+                          {land.status }
+                        </Text>
                       </View>
                     </View>
-                  ))}
-                </View>
-              </Card>
+                  </View>
+
+                  <View style={styles.landStats}>
+                    <View style={styles.landStatItem}>
+                      <Text style={styles.landStatLabel}>Area</Text>
+                      <Text style={styles.landStatValue}>{land.area} ha</Text>
+                    </View>
+                    <View style={styles.landStatItem}>
+                      <Text style={styles.landStatLabel}>Crop</Text>
+                      <Text style={styles.landStatValue}>{land.crop_type}</Text>
+                    </View>
+                    <View style={styles.landStatItem}>
+                      <Text style={styles.landStatLabel}>Score</Text>
+                      <Text style={[styles.landStatValue, { color: theme.colors.success }]}>
+                        {land.carbon_score}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Card>
         </ScrollView>
       </View>
     </SafeAreaView>
