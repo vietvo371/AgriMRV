@@ -20,7 +20,9 @@ AgriMRV/
 ├── Agri_Be/             # Laravel Backend API
 ├── README.md            # This file
 ├── CHANGELOG.md         # Version history
-└── CONTRIBUTING.md      # Contribution guidelines
+├── CONTRIBUTING.md      # Contribution guidelines
+├── CODE_OF_CONDUCT.md   # Code of conduct
+└── LICENSE              # MIT License
 ```
 
 ### 🌟 Key Features
@@ -265,7 +267,7 @@ php artisan cache:clear
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) for details.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
