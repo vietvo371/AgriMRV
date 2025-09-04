@@ -1,16 +1,183 @@
-# 🌱 AgriMRV - Agricultural Management & Verification Platform
+# AgriMRV | Scalable Blockchain-Powered MRV for Agroforestry & Rice-Based Carbon Projects – NABARD Hackathon 2025
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/vietvo371/AgriMRV/releases)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![React Native](https://img.shields.io/badge/React%20Native-0.81.0-61DAFB.svg)](https://reactnative.dev/)
-[![Laravel](https://img.shields.io/badge/Laravel-10.x-FF2D20.svg)](https://laravel.com/)
-[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey.svg)](https://github.com/vietvo371/AgriMRV)
+<p>Project developed and maintained by Duy Tan University students (DTU_DZ), aimed at building a modern agricultural management platform with blockchain technology and AI for the NABARD Hackathon 2025 in India.</p>
+
+![Banner](Agri_Mobile/src/assets/images/logo.png)
+
+<div>
+  <img src="https://img.shields.io/badge/branches-3-blue?style=for-the-badge" alt="Branches" />
+  <img src="https://img.shields.io/badge/commits-25-green?style=for-the-badge" alt="Commits" />
+  <img src="https://img.shields.io/badge/pull_requests-8-purple?style=for-the-badge" alt="Pull Requests" />
+  <img src="https://img.shields.io/badge/contributors-5-yellow?style=for-the-badge" alt="Contributors" />
+  <img src="https://img.shields.io/badge/stars-12-red?style=for-the-badge" alt="Stars" />
+  <img src="https://img.shields.io/badge/forks-3-orange?style=for-the-badge" alt="Forks" />
+</div>
+
+# 🌱 AgriMRV | Scalable Blockchain-Powered MRV for Agroforestry & Rice-Based Carbon Projects
+
+<div align="center">  
+  <p align="center">
+    <img src="https://img.shields.io/badge/version-1.0.0-blue?style=for-the-badge" alt="Version" />
+    <img src="https://img.shields.io/badge/status-hackathon_ready-green?style=for-the-badge" alt="Status" />
+    <img src="https://img.shields.io/badge/license-MIT-orange?style=for-the-badge" alt="License" />
+    <img src="https://img.shields.io/badge/NABARD_Hackathon_2025-India-red?style=for-the-badge" alt="NABARD Hackathon 2025" />
+  </p>
+  
+  <br />
+  
+  <div align="center">
+    <table>
+    <tr>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-PHP-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP"/>
+        <br/>
+        <span style="font-size: 24px;">🐘</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel"/>
+        <br/>
+        <span style="font-size: 24px;">🔺</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Native"/>
+        <br/>
+        <span style="font-size: 24px;">📱</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-Blockchain-3DDC84?style=for-the-badge&logo=blockchain&logoColor=white" alt="Blockchain"/>
+        <br/>
+        <span style="font-size: 24px;">⛓️</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-AI/ML-FF6B6B?style=for-the-badge&logo=ai&logoColor=white" alt="AI/ML"/>
+        <br/>
+        <span style="font-size: 24px;">🧠</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"/>
+        <br/>
+        <span style="font-size: 24px;">🗄️</span>
+      </td>
+    </tr>
+  </table>
+  </div>
+  
+  <br />
+  
+  <div align="center">
+    <kbd>
+      <p align="center" style="padding: 10px; background-color: #f8f9fa; border-radius: 5px; width: 80%; margin: 0 auto;">
+        <i>Modern multi-platform agricultural management platform with blockchain MRV system, 
+        integrated AI analysis and smart recommendations for sustainable agriculture.</i>
+      </p>
+    </kbd>
+  </div>
+  
+  <br />
+  
+  <div align="center">
+    <a href="#-key-features">🚀 Key Features</a> •
+    <a href="#-main-functions">🧩 Main Functions</a> •
+    <a href="#-deployment">🚧 Deployment</a> •
+    <a href="#-contributors">👨‍💻 Contributors</a>
+  </div>
+</div>
+
+
+---
 
 > **Revolutionizing Agriculture through Technology** - A comprehensive platform for agricultural management, verification, and financial inclusion.
 
-## 🎯 Overview
+## ✨ Introduction
 
-AgriMRV (Agricultural Management, Reporting & Verification) is a cutting-edge platform consisting of a mobile application and backend API designed to empower farmers, agricultural cooperatives, and financial institutions with advanced tools for farm management, product verification, and credit assessment.
+**AgriMRV | Scalable Blockchain-Powered MRV for Agroforestry & Rice-Based Carbon Projects** is a comprehensive platform designed to modernize agricultural management and Monitoring, Reporting & Verification (MRV) through blockchain technology. This project combines cutting-edge technologies like AI, blockchain, and intuitive user interfaces to deliver personalized and intelligent agricultural management experience for the NABARD Hackathon 2025 in India.
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3 align="center">🌟 Vision</h3>
+      <p align="center">Personalize agricultural management through blockchain MRV technology and exceptional user experience</p>
+    </td>
+    <td width="50%">
+      <h3 align="center">🎯 Mission</h3>
+      <p align="center">Provide multi-platform agricultural management platform with blockchain MRV system and user-friendly interface</p>
+    </td>
+  </tr>
+</table>
+
+## ✨ Technology Stack
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-PHP-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP"/>
+        <br/>
+        <span style="font-size: 24px;">🐘</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel"/>
+        <br/>
+        <span style="font-size: 24px;">🔺</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Native"/>
+        <br/>
+        <span style="font-size: 24px;">📱</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-Blockchain-3DDC84?style=for-the-badge&logo=blockchain&logoColor=white" alt="Blockchain"/>
+        <br/>
+        <span style="font-size: 24px;">⛓️</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-AI/ML-FF6B6B?style=for-the-badge&logo=ai&logoColor=white" alt="AI/ML"/>
+        <br/>
+        <span style="font-size: 24px;">🧠</span>
+      </td>
+      <td align="center" width="16.6%">
+        <img src="https://img.shields.io/badge/-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"/>
+        <br/>
+        <span style="font-size: 24px;">🗄️</span>
+      </td>
+    </tr>
+  </table>
+</div>
+
+## 🚀 Key Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🔹 Multi-Platform</h3>
+      <p>System designed to operate across multiple platforms, including web and mobile devices.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🔺 Laravel Backend</h3>
+      <p>Backend API built with Laravel, providing secure and efficient RESTful endpoints.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>📱 Mobile Application</h3>
+      <p>Mobile app developed with React Native, enabling agricultural management across multiple devices.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>⛓️ Blockchain MRV</h3>
+      <p>System uses blockchain to verify and report agricultural data transparently and immutably.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>🧠 AI Analysis</h3>
+      <p>System uses AI to analyze agricultural data and suggest optimal solutions.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🌱 Sustainable Agriculture</h3>
+      <p>Focus on sustainable agriculture with carbon footprint tracking and efficient resource management.</p>
+    </td>
+  </tr>
+</table>
 
 ## 📁 Project Structure
 
@@ -100,13 +267,56 @@ AgriMRV/
    npx react-native run-android
    ```
 
-## 📱 Screenshots
+## 🖼️ Demo Screenshots
 
 <div align="center">
-  <img src="Agri_Mobile/docs/screenshots/dashboard.png" width="200" alt="Dashboard"/>
-  <img src="Agri_Mobile/docs/screenshots/farm-management.png" width="200" alt="Farm Management"/>
-  <img src="Agri_Mobile/docs/screenshots/ai-analysis.png" width="200" alt="AI Analysis"/>
-  <img src="Agri_Mobile/docs/screenshots/qr-scan.png" width="200" alt="QR Scanner"/>
+  <table>
+    <tr>
+      <td align="center"><strong>Agricultural Dashboard</strong></td>
+      <td align="center"><strong>Plot Management</strong></td>
+    </tr>
+    <tr>
+      <td><img src="Agri_Mobile/docs/screenshots/dashboard.png" alt="Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td><img src="Agri_Mobile/docs/screenshots/farm-management.png" alt="Farm Management" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+    </tr>
+    <tr>
+      <td align="center"><strong>AI Analysis</strong></td>
+      <td align="center"><strong>Blockchain MRV</strong></td>
+    </tr>
+    <tr>
+      <td><img src="Agri_Mobile/docs/screenshots/ai-analysis.png" alt="AI Analysis" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td><img src="Agri_Mobile/docs/screenshots/qr-scan.png" alt="QR Scanner" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+    </tr>
+  </table>
+</div>
+
+## 🛠️ Improvements & Bug Fixes
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="25%">
+        <div style="font-size: 36px;">🔄</div>
+        <h3>Blockchain Optimization</h3>
+        <p>Improve performance and security of blockchain MRV system</p>
+      </td>
+      <td align="center" width="25%">
+        <div style="font-size: 36px;">🚀</div>
+        <h3>Enhanced AI Analysis</h3>
+        <p>Improve accuracy of agricultural analysis algorithms</p>
+      </td>
+      <td align="center" width="25%">
+        <div style="font-size: 36px;">🐛</div>
+        <h3>Data Sync Fixes</h3>
+        <p>Resolve issues in data synchronization processes</p>
+      </td>
+      <td align="center" width="25%">
+        <div style="font-size: 36px;">📦</div>
+        <h3>UX/UI Improvements</h3>
+        <p>Enhance user experience across all platforms</p>
+      </td>
+    </tr>
+  </table>
 </div>
 
 ## 🏗️ Architecture
@@ -167,7 +377,38 @@ Agri_Be/
 └── config/              # Configuration files
 ```
 
-## 🎯 Hackathon Innovation
+## 🧩 Main Functions
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <ul>
+        <li>✅ <b>Farm Profile Management</b> - Create and manage detailed farm information</li>
+        <li>✅ <b>Plot Management</b> - Track and manage cultivation plots</li>
+        <li>✅ <b>MRV Reporting</b> - Report and verify agricultural activities</li>
+        <li>✅ <b>AI Analysis</b> - Smart analysis and optimization recommendations</li>
+        <li>✅ <b>Blockchain Verification</b> - Verify data through blockchain</li>
+        <li>✅ <b>Carbon Credits Management</b> - Track and trade carbon credits</li>
+        <li>✅ <b>QR Code System</b> - QR code system for traceability</li>
+        <li>✅ <b>Cooperative Management</b> - Manage cooperative members</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top">
+      <ul>
+        <li>✅ <b>User Management</b> - Add, edit, delete user information</li>
+        <li>✅ <b>Agricultural Data Management</b> - Add, edit, delete agricultural data</li>
+        <li>✅ <b>Report Management</b> - Add, edit, delete MRV reports</li>
+        <li>✅ <b>Blockchain Management</b> - Manage blockchain transactions</li>
+        <li>✅ <b>AI Analysis Management</b> - Manage AI analysis results</li>
+        <li>✅ <b>Financial Management</b> - Track and manage financial transactions</li>
+        <li>✅ <b>Carbon Credits Management</b> - Process carbon credit transactions</li>
+        <li>✅ <b>Statistics & Reports</b> - Analyze data and generate reports</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+## 🎯 NABARD Hackathon Innovation
 
 ### 🌟 Unique Value Propositions
 
@@ -279,29 +520,108 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Team
+## 👨‍💻 Contributors
 
-- **Văn Việt** - Lead Developer & Project Manager
-- **AI/ML Team** - Machine Learning & Analytics
-- **Blockchain Team** - Smart Contracts & Verification
-- **UI/UX Team** - Design & User Experience
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="20%">
+        <a href="mailto:thanhtruong23111999@gmail.com">
+          <img src="https://via.placeholder.com/100x100/4CAF50/FFFFFF?text=LT" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Le Thanh Truong"/>
+          <br />
+          <b>Le Thanh Truong</b>
+        </a>
+        <br />
+        <sub>thanhtruong23111999@gmail.com</sub>
+        <br />
+        <a href="https://github.com/vietvo371/AgriMRV/commits?author=thanhtruong">
+          <img src="https://img.shields.io/badge/commits-8-blue?style=flat-square" alt="commits" />
+        </a>
+        <br />
+        <small>Team Leader</small>
+      </td>
+      <td align="center" width="20%">
+        <a href="mailto:vietvo371@gmail.com">
+          <img src="https://via.placeholder.com/100x100/2196F3/FFFFFF?text=VV" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Vo Van Viet"/>
+          <br />
+          <b>Vo Van Viet</b>
+        </a>
+        <br />
+        <sub>vietvo371@gmail.com</sub>
+        <br />
+        <a href="https://github.com/vietvo371/AgriMRV/commits?author=vietvo371">
+          <img src="https://img.shields.io/badge/commits-12-blue?style=flat-square" alt="commits" />
+        </a>
+        <br />
+        <small>Lead Developer</small>
+      </td>
+      <td align="center" width="20%">
+        <a href="mailto:vannhan130504@gmail.com">
+          <img src="https://via.placeholder.com/100x100/FF9800/FFFFFF?text=NVN" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Nguyen Van Nhan"/>
+          <br />
+          <b>Nguyen Van Nhan</b>
+        </a>
+        <br />
+        <sub>vannhan130504@gmail.com</sub>
+        <br />
+        <a href="https://github.com/vietvo371/AgriMRV/commits?author=vannhan">
+          <img src="https://img.shields.io/badge/commits-6-blue?style=flat-square" alt="commits" />
+        </a>
+        <br />
+        <small>Backend Developer</small>
+      </td>
+      <td align="center" width="20%">
+        <a href="mailto:kkdn011@gmail.com">
+          <img src="https://via.placeholder.com/100x100/9C27B0/FFFFFF?text=NNDT" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Nguyen Ngoc Duy Thai"/>
+          <br />
+          <b>Nguyen Ngoc Duy Thai</b>
+        </a>
+        <br />
+        <sub>kkdn011@gmail.com</sub>
+        <br />
+        <a href="https://github.com/vietvo371/AgriMRV/commits?author=duythai">
+          <img src="https://img.shields.io/badge/commits-5-blue?style=flat-square" alt="commits" />
+        </a>
+        <br />
+        <small>Mobile Developer</small>
+      </td>
+      <td align="center" width="20%">
+        <a href="mailto:Tructran172003@gmail.com">
+          <img src="https://via.placeholder.com/100x100/E91E63/FFFFFF?text=TTT" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Tran Trung Truc"/>
+          <br />
+          <b>Tran Trung Truc</b>
+        </a>
+        <br />
+        <sub>Tructran172003@gmail.com</sub>
+        <br />
+        <a href="https://github.com/vietvo371/AgriMRV/commits?author=trungtruc">
+          <img src="https://img.shields.io/badge/commits-4-blue?style=flat-square" alt="commits" />
+        </a>
+        <br />
+        <small>UI/UX Designer</small>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ## 📞 Contact
 
+- **Team**: DTU_DZ - Đại học Duy Tân
+- **Hackathon**: NABARD Hackathon - India
 - **Email**: vietvo371@gmail.com
 - **GitHub**: [@vietvo371](https://github.com/vietvo371)
-- **LinkedIn**: [Văn Việt](https://linkedin.com/in/vietvo371)
 - **Project Link**: [https://github.com/vietvo371/AgriMRV](https://github.com/vietvo371/AgriMRV)
 
 ## 🙏 Acknowledgments
 
+- NABARD Hackathon organizers for the opportunity
 - React Native community for the amazing framework
-- Open source contributors who made this possible
+- Laravel community for the robust backend framework
+- Blockchain community for innovative solutions
 - Agricultural experts who provided domain knowledge
-- Hackathon organizers for the opportunity
 
 ---
 
 <div align="center">
-  <strong>Built with ❤️ for the future of agriculture</strong>
+  <strong>Built with ❤️ for sustainable agriculture and NABARD Hackathon</strong>
 </div>
