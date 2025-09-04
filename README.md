@@ -1,8 +1,8 @@
-# AgriMRV | Scalable Blockchain-Powered MRV for Agroforestry & Rice-Based Carbon Projects – NABARD Hackathon 2025
+# NABARD Hackathon 2025 - AgriMRV | Scalable Blockchain-Powered MRV for Agroforestry & Rice-Based Carbon Projects
 
 <p>Project developed and maintained by Duy Tan University students (DTU_DZ), aimed at building a modern agricultural management platform with blockchain technology and AI for the NABARD Hackathon 2025 in India.</p>
 
-![Banner](Agri_Mobile/src/assets/images/logo.png)
+![Banner](Agri_Mobile/src/assets/demo/BANNER_AGRIMRV.png)
 
 <div>
   <img src="https://img.shields.io/badge/branches-3-blue?style=for-the-badge" alt="Branches" />
@@ -272,20 +272,20 @@ AgriMRV/
 <div align="center">
   <table>
     <tr>
-      <td align="center"><strong>Agricultural Dashboard</strong></td>
-      <td align="center"><strong>Plot Management</strong></td>
+      <td align="center"><strong>Farmer MRV</strong></td>
+      <td align="center"><strong>Banker Management</strong></td>
     </tr>
     <tr>
-      <td><img src="Agri_Mobile/docs/screenshots/dashboard.png" alt="Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
-      <td><img src="Agri_Mobile/docs/screenshots/farm-management.png" alt="Farm Management" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td><img src="Agri_Mobile/src/assets/demo/AgriMRV_gitdemo_1.png" alt="Dashboard" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td><img src="Agri_Mobile/src/assets/demo/banker.png" alt="Farm Management" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
     </tr>
     <tr>
-      <td align="center"><strong>AI Analysis</strong></td>
-      <td align="center"><strong>Blockchain MRV</strong></td>
+      <td align="center"><strong>AI Blockchain Analysis</strong></td>
+      <td align="center"><strong>Verifier Dashboard</strong></td>
     </tr>
     <tr>
-      <td><img src="Agri_Mobile/docs/screenshots/ai-analysis.png" alt="AI Analysis" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
-      <td><img src="Agri_Mobile/docs/screenshots/qr-scan.png" alt="QR Scanner" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td><img src="Agri_Mobile/src/assets/demo/blockchain.png" alt="AI Analysis" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
+      <td><img src="Agri_Mobile/src/assets/demo/verifi.png" alt="QR Scanner" width="100%" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"/></td>
     </tr>
   </table>
 </div>
@@ -527,7 +527,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
     <tr>
       <td align="center" width="20%">
         <a href="mailto:thanhtruong23111999@gmail.com">
-          <img src="https://via.placeholder.com/100x100/4CAF50/FFFFFF?text=LT" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Le Thanh Truong"/>
+          <img src="https://scontent.fdad3-6.fna.fbcdn.net/v/t39.30808-6/485149674_2075097759569194_5107159423492733838_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=uPB6q4Fn05sQ7kNvwGiQLr-&_nc_oc=AdkJRMJd_ePwxh-K08g9XYmfViHC-mDbvTZv6lh_K9ijraAxLmcffUogK85sxHosZj4&_nc_zt=23&_nc_ht=scontent.fdad3-6.fna&_nc_gid=xCL5oOsfljvvlzMdgooAzg&oh=00_AfaCrKk7fcaZMTBpdk7u9Mk0FuUojGg31KQTDLJMIMC0Hg&oe=68BED0DC" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Le Thanh Truong"/>
           <br />
           <b>Le Thanh Truong</b>
         </a>
@@ -542,7 +542,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
       </td>
       <td align="center" width="20%">
         <a href="mailto:vietvo371@gmail.com">
-          <img src="https://via.placeholder.com/100x100/2196F3/FFFFFF?text=VV" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Vo Van Viet"/>
+          <img src="https://scontent.fdad3-6.fna.fbcdn.net/v/t39.30808-1/530956746_1240552337755747_616445625183621379_n.jpg?stp=dst-jpg_s480x480_tt6&_nc_cat=110&ccb=1-7&_nc_sid=1d2534&_nc_ohc=QAmYgnCcF9MQ7kNvwFcbS-D&_nc_oc=Adkm5c8ppZzO8iAtQ87B7FRLnBq4OfeW6AVI-yWLh7d43Y0CErLs2ZdR0Nze_XV4MGg&_nc_zt=24&_nc_ht=scontent.fdad3-6.fna&_nc_gid=2GENMW9zqU9Twwa2U9Avsg&oh=00_AfZnR-cnVZxKec1mafEFAYieM6u6JyVcBBz2PFzc70OK1w&oe=68BEEB11" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Vo Van Viet"/>
           <br />
           <b>Vo Van Viet</b>
         </a>
@@ -557,22 +557,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
       </td>
       <td align="center" width="20%">
         <a href="mailto:vannhan130504@gmail.com">
-          <img src="https://via.placeholder.com/100x100/FF9800/FFFFFF?text=NVN" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Nguyen Van Nhan"/>
+          <img src="https://scontent.fdad3-6.fna.fbcdn.net/v/t39.30808-1/482227647_1358639922123923_8419598614173034149_n.jpg?stp=c0.536.1408.1408a_dst-jpg_s480x480_tt6&_nc_cat=111&ccb=1-7&_nc_sid=1d2534&_nc_ohc=cfU89chyWcwQ7kNvwEJ4fK7&_nc_oc=Adm22N8YjWuuqvjLWkhMphB1GyIPr0sokE1Sfp1HTS160fGm0m35hadBD0Nc4eg9Ep0&_nc_zt=24&_nc_ht=scontent.fdad3-6.fna&_nc_gid=Vyf4e-bC6ecivTwV71W0IQ&oh=00_AfZTRnKMjyo5msuMea_cUR23QXWyxTZ7a3xJ-P81xiqBqA&oe=68BED585" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Nguyen Van Nhan"/>
           <br />
           <b>Nguyen Van Nhan</b>
         </a>
         <br />
         <sub>vannhan130504@gmail.com</sub>
         <br />
-        <a href="https://github.com/vietvo371/AgriMRV/commits?author=vannhan">
-          <img src="https://img.shields.io/badge/commits-6-blue?style=flat-square" alt="commits" />
+        <a href="https://img.shields.io/badge/commits-12-blue?style=flat-square">
+          <img src="https://img.shields.io/badge/commits-12-blue?style=flat-square" alt="commits" />
         </a>
         <br />
         <small>Backend Developer</small>
       </td>
       <td align="center" width="20%">
         <a href="mailto:kkdn011@gmail.com">
-          <img src="https://via.placeholder.com/100x100/9C27B0/FFFFFF?text=NNDT" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Nguyen Ngoc Duy Thai"/>
+          <img src="https://scontent.fdad3-6.fna.fbcdn.net/v/t39.30808-1/499275038_1195896505351510_2024464669530916103_n.jpg?stp=c0.0.1536.1536a_dst-jpg_s480x480_tt6&_nc_cat=101&ccb=1-7&_nc_sid=e99d92&_nc_ohc=9_sWYSdjGuQQ7kNvwGZ31s5&_nc_oc=Adm5d_U5_4N-aaVwGHpmnQg-T3Z_QULu8eadVdZOqEu_ikDEZvyH8nDK5ist3RSrZiA&_nc_zt=24&_nc_ht=scontent.fdad3-6.fna&_nc_gid=qKb8Wf5Ldwpt5pT9qBiukA&oh=00_Afa1BFND96rYILOFrcISgY7TXVDvPWzVhHOhCD38La39ug&oe=68BEC880" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Nguyen Ngoc Duy Thai"/>
           <br />
           <b>Nguyen Ngoc Duy Thai</b>
         </a>
@@ -587,7 +587,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
       </td>
       <td align="center" width="20%">
         <a href="mailto:Tructran172003@gmail.com">
-          <img src="https://via.placeholder.com/100x100/E91E63/FFFFFF?text=TTT" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Tran Trung Truc"/>
+          <img src="https://scontent.fdad3-6.fna.fbcdn.net/v/t39.30808-1/499275038_1195896505351510_2024464669530916103_n.jpg?stp=c0.0.1536.1536a_dst-jpg_s480x480_tt6&_nc_cat=101&ccb=1-7&_nc_sid=e99d92&_nc_ohc=9_sWYSdjGuQQ7kNvwGZ31s5&_nc_oc=Adm5d_U5_4N-aaVwGHpmnQg-T3Z_QULu8eadVdZOqEu_ikDEZvyH8nDK5ist3RSrZiA&_nc_zt=24&_nc_ht=scontent.fdad3-6.fna&_nc_gid=qKb8Wf5Ldwpt5pT9qBiukA&oh=00_Afa1BFND96rYILOFrcISgY7TXVDvPWzVhHOhCD38La39ug&oe=68BEC880" width="100px" style="border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" alt="Tran Trung Truc"/>
           <br />
           <b>Tran Trung Truc</b>
         </a>
